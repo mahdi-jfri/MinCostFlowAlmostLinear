@@ -1,0 +1,533 @@
+module
+
+public import MinCostFlow.SparseCore.BundleLemma517Variants
+public import MinCostFlow.DynSpanner.Examples
+public import MinCostFlow.LSF.Theorem22
+import Mathlib.Analysis.Complex.ExponentialBounds
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
+import Mathlib.Tactic.Ring
+
+/-!
+# Concrete Non-Vacuity Witnesses for the Bundle Sparse Core Tool (`BundleExamples.lean`)
+
+This file builds a small connected ordered dynamic graph `(exBundleDyn, exBundleOrd)` on `4`
+vertices and `16` initial edges processed across `τ = 3` batches exercising all three update kinds:
+1. Edge insertion (`[.insert 16 0 3]`),
+2. Edge deletion (`[.delete 15]`),
+3. Vertex split (`[.split 2 4 {2} {2}]`), where vertex `2` has two incident ends so the split
+   moves a single arc with `cycBdry ≤ 2`.
+
+All hypotheses of `IsSpecOrdUpTo`, `BundleCoreHypsAt`, `BundleInstanceHyps`, `OrderedUpTo`, and
+`WeakHiddenStable` are verified simultaneously and unconditionally (with `d_fn := fun _ => 0`,
+witnessing degree-freeness). We also instantiate:
+* `ex_bundle_hyps_simultaneous`: unconditional simultaneous non-vacuity of all hypotheses,
+* `ex_bundle_side_uncond`: unconditional non-vacuity of `bundleLemma_5_17_mwu` (`μ = 2`),
+  `ToolEmbedsSurvivingOrdUpTo`, `ToolNoReinsertOrdUpTo`, and `bundleLemma_5_17_orderedUpTo`,
+* `ex_bundle_isSpecOrdUpTo` and `ex_bundle_lemma_5_17_inst`: instantiations of `IsSpecOrdUpTo`,
+  `IsSpecOrdNoHiddenUpTo`, and `bundleLemma_5_17_inst` on `(exBundleDyn, exBundleOrd)`.
+-/
+
+namespace MinCostFlow.SparseCore
+
+open MinCostFlow
+open MinCostFlow.LSF
+open MinCostFlow.Chain
+open MinCostFlow.DynSpanner
+open MinCostFlow.Bundle
+
+@[expose] public section
+
+/-! ## 1. Small connected ordered dynamic instance with insertion, deletion, and split -/
+
+/-- Initial connected valid multigraph on `{0, 1, 2, 3}` with `16` edges:
+edges `0, 1, 2` form the path `0 — 1 — 2 — 3` and edges `3..15` run parallel `(0, 3)`. -/
+def exBundleG₀ : MGraph where
+  V := {0, 1, 2, 3}
+  E := Finset.range 16
+  tail := fun e => if e = 0 then 0 else if e = 1 then 1 else if e = 2 then 2 else 0
+  head := fun e => if e = 0 then 1 else if e = 1 then 2 else if e = 2 then 3 else 3
+
+lemma exBundleG₀_valid : exBundleG₀.IsValid := by
+  intro e _
+  simp only [exBundleG₀]
+  split_ifs <;> simp
+
+lemma exBundleG₀_V_nonempty : exBundleG₀.V.Nonempty := ⟨0, by decide⟩
+
+lemma exBundleG₀_m : exBundleG₀.m = 16 := by simp [MGraph.m, exBundleG₀]
+
+lemma exBundleG₀_n : exBundleG₀.n = 4 := by decide
+
+private lemma exBundleG₀_isWalk_append {u v w : ℕ} {P Q : List (ℕ × Bool)}
+    (hP : exBundleG₀.IsWalk u v P) (hQ : exBundleG₀.IsWalk v w Q) :
+    exBundleG₀.IsWalk u w (P ++ Q) := by
+  induction hP with
+  | nil _ => exact hQ
+  | cons he hsrc _ ih => exact .cons he hsrc (ih hQ)
+
+private lemma exBundleG₀_isWalk_rev {u v : ℕ} {P : List (ℕ × Bool)}
+    (hP : exBundleG₀.IsWalk u v P) :
+    exBundleG₀.IsWalk v u (walkRev P) := by
+  induction hP with
+  | nil u => simpa [walkRev] using MGraph.IsWalk.nil u
+  | @cons a b x xs hxE hsrc _ ih =>
+    have hrev : walkRev (x :: xs) = walkRev xs ++ [(x.1, !x.2)] := by
+      simp [walkRev, List.map_cons, List.reverse_cons]
+    rw [hrev]
+    have hsrc' : exBundleG₀.src (x.1, !x.2) = exBundleG₀.dst x := by
+      cases h : x.2 <;> simp [MGraph.src, MGraph.dst, h]
+    have hdst' : exBundleG₀.dst (x.1, !x.2) = a := by
+      cases h : x.2
+      · simp only [MGraph.src, h, Bool.false_eq_true, ↓reduceIte] at hsrc
+        simp [MGraph.dst, hsrc]
+      · simp only [MGraph.src, h, ↓reduceIte] at hsrc
+        simp [MGraph.dst, hsrc]
+    exact exBundleG₀_isWalk_append ih (.cons hxE hsrc' (hdst'.symm ▸ MGraph.IsWalk.nil a))
+
+lemma exBundleG₀_connected : ∀ u ∈ exBundleG₀.V, ∀ v ∈ exBundleG₀.V, exBundleG₀.Connected u v := by
+  have h01 : exBundleG₀.IsWalk 0 1 [(0, true)] :=
+    .cons (by simp [exBundleG₀]) (by simp [MGraph.src, exBundleG₀]) (.nil _)
+  have h12 : exBundleG₀.IsWalk 1 2 [(1, true)] :=
+    .cons (by simp [exBundleG₀]) (by simp [MGraph.src, exBundleG₀]) (.nil _)
+  have h23 : exBundleG₀.IsWalk 2 3 [(2, true)] :=
+    .cons (by simp [exBundleG₀]) (by simp [MGraph.src, exBundleG₀]) (.nil _)
+  have h0 : ∀ w ∈ exBundleG₀.V, exBundleG₀.Connected 0 w := by
+    intro w hw
+    simp only [exBundleG₀, Finset.mem_insert, Finset.mem_singleton] at hw
+    rcases hw with rfl | rfl | rfl | rfl
+    · exact ⟨[], .nil _⟩
+    · exact ⟨[(0, true)], h01⟩
+    · exact ⟨[(0, true), (1, true)], exBundleG₀_isWalk_append h01 h12⟩
+    · exact ⟨[(0, true), (1, true), (2, true)],
+        exBundleG₀_isWalk_append (exBundleG₀_isWalk_append h01 h12) h23⟩
+  intro u hu v hv
+  obtain ⟨P, hP⟩ := h0 u hu
+  obtain ⟨Q, hQ⟩ := h0 v hv
+  exact ⟨walkRev P ++ Q, exBundleG₀_isWalk_append (exBundleG₀_isWalk_rev hP) hQ⟩
+
+/-- Three valid batches exercising edge insertion, edge deletion, and vertex split. -/
+def exBundleU : ℕ → List Update
+  | 1 => [.insert 16 0 3]
+  | 2 => [.delete 15]
+  | 3 => [.split 2 4 {2} {2}]
+  | _ => []
+
+/-- Concrete dynamic graph trajectory generated by `(exBundleG₀, exBundleU)` with zero gradients
+and unit lengths. -/
+def exBundleDyn : DynamicInstance where
+  G := Nat.rec exBundleG₀ fun t G => G.applyBatch (exBundleU (t + 1))
+  g := fun _ _ => 0
+  ℓ := fun _ _ => 1
+  U := exBundleU
+
+/-- Sorted rotation orders along `exBundleDyn`. -/
+def exBundleOrd : ℕ → ℕ → List End :=
+  fun t => sortedEnds (exBundleDyn.G t)
+
+private lemma exBundleDyn_G0 : exBundleDyn.G 0 = exBundleG₀ := rfl
+private lemma exBundleDyn_G1 : exBundleDyn.G 1 = exBundleG₀.applyBatch [.insert 16 0 3] := rfl
+private lemma exBundleDyn_G2 :
+    exBundleDyn.G 2 = (exBundleG₀.applyBatch [.insert 16 0 3]).applyBatch [.delete 15] := rfl
+private lemma exBundleDyn_G3 :
+    exBundleDyn.G 3 =
+      ((exBundleG₀.applyBatch [.insert 16 0 3]).applyBatch [.delete 15]).applyBatch
+        [.split 2 4 {2} {2}] := rfl
+
+lemma exBundleDyn_valid : exBundleDyn.IsValid 3 := by
+  intro t ht1 ht3
+  have ht : t = 1 ∨ t = 2 ∨ t = 3 := by omega
+  rcases ht with rfl | rfl | rfl
+  · refine ⟨?_, rfl⟩
+    dsimp only [exBundleDyn, exBundleU]
+    simp [exBundleG₀, MGraph.BatchIsValid, MGraph.UpdateIsValid]
+  · refine ⟨?_, rfl⟩
+    dsimp only [exBundleDyn, exBundleU]
+    change (exBundleDyn.G 1).BatchIsValid [.delete 15]
+    rw [exBundleDyn_G1]
+    simp [exBundleG₀, MGraph.BatchIsValid, MGraph.UpdateIsValid, MGraph.applyBatch,
+      MGraph.applyUpdate]
+  · refine ⟨?_, rfl⟩
+    dsimp only [exBundleDyn, exBundleU]
+    change (exBundleDyn.G 2).BatchIsValid [.split 2 4 {2} {2}]
+    rw [exBundleDyn_G2]
+    simp only [MGraph.BatchIsValid, MGraph.applyBatch, List.foldl_cons, List.foldl_nil,
+      MGraph.applyUpdate, exBundleG₀, MGraph.UpdateIsValid]
+    refine ⟨⟨by decide, by decide, ?_, fun e he => ?_⟩, trivial⟩
+    · intro e he
+      simp only [Finset.union_self, Finset.mem_singleton] at he
+      subst he
+      decide
+    · simp only [Finset.union_self, Finset.mem_singleton] at he
+      subst he
+      left
+      simp [Function.update]
+
+lemma exBundleDyn_lengthsStable : LengthsStable exBundleDyn 3 := fun _ _ _ _ _ _ _ => rfl
+
+lemma exBundleDyn_len_pos : ∀ t ≤ 3, ∀ e ∈ (exBundleDyn.G t).E, 0 < exBundleDyn.ℓ t e :=
+  fun _ _ _ _ => zero_lt_one
+
+lemma exBundleDyn_thresh :
+    (((Finset.Icc 1 3).sum fun s => (exBundleDyn.U s).length : ℕ) : ℝ) ≤
+      SparseCoreTool.updateThreshold 1 exBundleG₀.m exBundleG₀.n := by
+  have hsum : ((Finset.Icc 1 3).sum fun s => (exBundleDyn.U s).length) = 3 := by decide
+  rw [hsum, SparseCoreTool.updateThreshold, exBundleG₀_m, exBundleG₀_n]
+  push_cast
+  have hexp1 : (27 / 10 : ℝ) < Real.exp 1 := by linarith [Real.exp_one_gt_d9]
+  have h6_exp : (6 : ℝ) < Real.exp 2 := by
+    have hsq : (6 : ℝ) < (27 / 10 : ℝ) ^ 2 := by norm_num
+    have hsq_exp : (27 / 10 : ℝ) ^ 2 < (Real.exp 1) ^ 2 := by nlinarith
+    have he2 : (Real.exp 1) ^ 2 = Real.exp 2 := by
+      rw [← Real.exp_nat_mul]; norm_num
+    linarith
+  have hlog6_lt : Real.log 6 < 2 := by
+    calc Real.log 6 < Real.log (Real.exp 2) := Real.log_lt_log (by norm_num) h6_exp
+      _ = 2 := Real.log_exp 2
+  have hlog6_pos : 0 < Real.log 6 := Real.log_pos (by norm_num)
+  have hlog6_sq : (Real.log 6) ^ 2 ≤ 4 := by nlinarith
+  have hden_pos : 0 < 1 * (Real.log ((4 : ℝ) + 2)) ^ 2 := by
+    have : Real.log ((4 : ℝ) + 2) = Real.log 6 := by ring_nf
+    rw [this]
+    positivity
+  rw [le_div_iff₀ hden_pos]
+  have : Real.log ((4 : ℝ) + 2) = Real.log 6 := by ring_nf
+  rw [this]
+  nlinarith
+
+/-! ## 2. Verifying `OrderedUpTo exBundleDyn 3 2 exBundleOrd` (including the vertex split) -/
+
+private lemma sortedEnds_nodup (G : MGraph) (v : ℕ) : (sortedEnds G v).Nodup :=
+  Finset.sort_nodup _ _
+
+private lemma sortedEnds_pairwise (G : MGraph) (v : ℕ) : (sortedEnds G v).Pairwise endLE :=
+  Finset.pairwise_sort _ _
+
+private lemma sortedEnds_ext_eq {xs ys : List End} (hx : xs.Nodup) (hy : ys.Nodup)
+    (hsx : xs.Pairwise endLE) (hsy : ys.Pairwise endLE)
+    (hm : ∀ x, x ∈ xs ↔ x ∈ ys) : xs = ys :=
+  (List.perm_ext_iff_of_nodup hx hy |>.mpr hm).eq_of_pairwise' hsx hsy
+
+private lemma exBundleDyn_G2_sortedEnds_two :
+    sortedEnds (exBundleDyn.G 2) 2 = [(1, false), (2, true)] := by
+  refine sortedEnds_ext_eq (sortedEnds_nodup _ _) (by decide)
+    (sortedEnds_pairwise _ _) (by decide) fun x => ?_
+  rw [mem_sortedEnds]
+  rcases x with ⟨e, b⟩
+  constructor
+  · rintro ⟨he, hsrc⟩
+    rw [exBundleDyn_G2] at he hsrc
+    simp only [MGraph.applyBatch, List.foldl_cons, List.foldl_nil, MGraph.applyUpdate,
+      exBundleG₀, Finset.mem_erase, Finset.mem_insert, Finset.mem_range] at he
+    cases b
+    · change (exBundleDyn.G 2).head e = 2 at hsrc
+      rw [exBundleDyn_G2] at hsrc
+      simp only [MGraph.applyBatch, List.foldl_cons, List.foldl_nil, MGraph.applyUpdate,
+        exBundleG₀] at hsrc
+      by_cases h16 : e = 16
+      · subst h16; simp [Function.update] at hsrc
+      · simp only [Function.update_of_ne h16] at hsrc
+        split_ifs at hsrc <;> simp_all
+    · change (exBundleDyn.G 2).tail e = 2 at hsrc
+      rw [exBundleDyn_G2] at hsrc
+      simp only [MGraph.applyBatch, List.foldl_cons, List.foldl_nil, MGraph.applyUpdate,
+        exBundleG₀] at hsrc
+      by_cases h16 : e = 16
+      · subst h16; simp [Function.update] at hsrc
+      · simp only [Function.update_of_ne h16] at hsrc
+        split_ifs at hsrc <;> simp_all
+  · intro hx
+    simp only [List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hx
+    rcases hx with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+    · rw [exBundleDyn_G2]
+      refine ⟨by simp [MGraph.applyBatch, MGraph.applyUpdate, exBundleG₀], ?_⟩
+      simp [MGraph.src, MGraph.applyBatch, MGraph.applyUpdate, exBundleG₀, Function.update]
+    · rw [exBundleDyn_G2]
+      refine ⟨by simp [MGraph.applyBatch, MGraph.applyUpdate, exBundleG₀], ?_⟩
+      simp [MGraph.src, MGraph.applyBatch, MGraph.applyUpdate, exBundleG₀, Function.update]
+
+private lemma exBundleDyn_split_step :
+    RotationStep 2 (.split 2 4 {2} {2})
+      (sortedRotation (exBundleDyn.G 2))
+      (sortedRotation ((exBundleDyn.G 2).applyUpdate (.split 2 4 {2} {2}))) := by
+  have hG2_v4 : ∀ e ∈ (exBundleDyn.G 2).E,
+      (exBundleDyn.G 2).tail e ≠ 4 ∧ (exBundleDyn.G 2).head e ≠ 4 := by
+    intro e he
+    rw [exBundleDyn_G2] at he ⊢
+    simp only [MGraph.applyBatch, List.foldl_cons, List.foldl_nil, MGraph.applyUpdate,
+      exBundleG₀] at he ⊢
+    by_cases h16 : e = 16
+    · subst h16; simp [Function.update]
+    · simp only [Function.update_of_ne h16]
+      split_ifs <;> decide
+  have hEq : ∀ (v : ℕ) (xs : List End),
+      xs.Nodup → xs.Pairwise endLE →
+      (∀ x, x ∈ sortedEnds ((exBundleDyn.G 2).applyUpdate (.split 2 4 {2} {2})) v ↔ x ∈ xs) →
+      (sortedEnds ((exBundleDyn.G 2).applyUpdate (.split 2 4 {2} {2})) v).IsRotated xs := by
+    intro v xs hnd hp hm
+    rw [sortedEnds_ext_eq (sortedEnds_nodup _ v) hnd (sortedEnds_pairwise _ v) hp hm]
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · dsimp only [sortedRotation]
+    apply hEq 2 _ ((sortedEnds_nodup (exBundleDyn.G 2) 2).filter _)
+      ((sortedEnds_pairwise (exBundleDyn.G 2) 2).filter _)
+    intro x
+    rw [mem_sortedEnds, List.mem_filter, mem_sortedEnds, src_applySplit]
+    change x.1 ∈ (exBundleDyn.G 2).E ∧
+        (if (exBundleDyn.G 2).src x = 2 ∧ splitEnds {2} {2} x = true then 4
+          else (exBundleDyn.G 2).src x) = 2 ↔
+      (x.1 ∈ (exBundleDyn.G 2).E ∧ (exBundleDyn.G 2).src x = 2) ∧ !(splitEnds {2} {2} x) = true
+    constructor
+    · rintro ⟨he, hsrc⟩
+      split_ifs at hsrc with hcond
+      · omega
+      · have hnot : splitEnds {2} {2} x = false := by
+          cases hb : splitEnds {2} {2} x
+          · rfl
+          · exact False.elim (hcond ⟨hsrc, hb⟩)
+        exact ⟨⟨he, hsrc⟩, by simp [hnot]⟩
+    · rintro ⟨⟨he, hsrc⟩, hnot⟩
+      have hfalse : splitEnds {2} {2} x = false := by simpa using hnot
+      exact ⟨he, by simp [hsrc, hfalse]⟩
+  · dsimp only [sortedRotation]
+    apply hEq 4 _ ((sortedEnds_nodup (exBundleDyn.G 2) 2).filter _)
+      ((sortedEnds_pairwise (exBundleDyn.G 2) 2).filter _)
+    intro x
+    rw [mem_sortedEnds, List.mem_filter, mem_sortedEnds, src_applySplit]
+    change x.1 ∈ (exBundleDyn.G 2).E ∧
+        (if (exBundleDyn.G 2).src x = 2 ∧ splitEnds {2} {2} x = true then 4
+          else (exBundleDyn.G 2).src x) = 4 ↔
+      (x.1 ∈ (exBundleDyn.G 2).E ∧ (exBundleDyn.G 2).src x = 2) ∧ splitEnds {2} {2} x = true
+    constructor
+    · rintro ⟨he, hsrc⟩
+      split_ifs at hsrc with hcond
+      · exact ⟨⟨he, hcond.1⟩, hcond.2⟩
+      · exfalso
+        have hne := hG2_v4 x.1 he
+        cases hb : x.2 <;> simp [MGraph.src, hb] at hsrc
+        · exact hne.2 hsrc
+        · exact hne.1 hsrc
+    · rintro ⟨⟨he, hsrc⟩, hm⟩
+      exact ⟨he, by simp [hsrc, hm]⟩
+  · change cycBdry (splitEnds {2} {2}) (sortedEnds (exBundleDyn.G 2) 2) ≤ 2
+    rw [exBundleDyn_G2_sortedEnds_two]
+    decide
+  · intro w hw2 hw4
+    dsimp only [sortedRotation]
+    apply hEq w _ (sortedEnds_nodup (exBundleDyn.G 2) w) (sortedEnds_pairwise (exBundleDyn.G 2) w)
+    intro x
+    rw [mem_sortedEnds, mem_sortedEnds, src_applySplit]
+    change x.1 ∈ (exBundleDyn.G 2).E ∧
+        (if (exBundleDyn.G 2).src x = 2 ∧ splitEnds {2} {2} x = true then 4
+          else (exBundleDyn.G 2).src x) = w ↔
+      x.1 ∈ (exBundleDyn.G 2).E ∧ (exBundleDyn.G 2).src x = w
+    constructor
+    · rintro ⟨he, hsrc⟩
+      split_ifs at hsrc with hcond
+      · exact False.elim (hw4 hsrc.symm)
+      · exact ⟨he, hsrc⟩
+    · rintro ⟨he, hsrc⟩
+      refine ⟨he, ?_⟩
+      split_ifs with hcond
+      · exact False.elim (hw2 (hsrc.symm.trans hcond.1))
+      · exact hsrc
+
+/-- Unconditional verification that `(exBundleDyn, exBundleOrd)` is ordered with split bound `2`
+across insertion, deletion, and vertex split. -/
+theorem exBundleDyn_orderedUpTo : OrderedUpTo exBundleDyn 3 2 exBundleOrd := by
+  refine ⟨fun t => sortedRotation (exBundleDyn.G t), fun _ _ => rfl, fun t ht => ?_⟩
+  have hcases : t = 0 ∨ t = 1 ∨ t = 2 := by omega
+  rcases hcases with rfl | rfl | rfl
+  · refine ⟨rfl, ?_⟩
+    have hbv := (exBundleDyn_valid 1 (by omega) (by omega)).1
+    exact RotationBatch.mono
+      (sortedRotation_batch hbv fun u hu => by
+        simp only [exBundleDyn, exBundleU, List.mem_singleton] at hu
+        subst hu; trivial)
+      (by omega)
+  · refine ⟨rfl, ?_⟩
+    have hbv := (exBundleDyn_valid 2 (by omega) (by omega)).1
+    exact RotationBatch.mono
+      (sortedRotation_batch hbv fun u hu => by
+        simp only [exBundleDyn, exBundleU, List.mem_singleton] at hu
+        subst hu; trivial)
+      (by omega)
+  · refine ⟨rfl, ?_⟩
+    exact RotationBatch.cons exBundleDyn_split_step (RotationBatch.refl _)
+
+/-! ## 3. Concrete degree-free `SparseCoreEnv`, `BundleCoreHypsAt`, and non-vacuity theorems -/
+
+/-- Concrete `SparseCoreEnv` with `L = 1`, `sparsify = idSparsify`, `B_fn m = m + 1`, `c_n = 1`,
+and `d_fn _ = 0` (witnessing that `bundleCoreParams` and `BundleCoreHypsAt` never read `d_fn`). -/
+def exBundleEnv (C_lsst : ℝ) : SparseCoreEnv where
+  C_lsst := C_lsst
+  L := 1
+  hL := le_rfl
+  P_fn := idSparsifyParams
+  hMono := fun _ _ h => ⟨le_rfl, le_rfl, by dsimp only [idSparsifyParams]; exact_mod_cast h,
+    le_rfl, le_rfl, le_rfl⟩
+  p_s_hi := 0
+  p_t_hi := 0
+  hp_s := fun _ => le_rfl
+  hp_t := fun _ => le_rfl
+  B_fn := fun m => m + 1
+  hB_pos := fun m => Nat.succ_pos m
+  hB_mono := fun _ _ h => Nat.add_le_add_right h 1
+  d_fn := fun _ => 0
+  hd_mono := fun _ _ _ => le_rfl
+  c_n := 1
+  hc_n := le_rfl
+
+lemma exBundleDyn_hypsAt (oracle : MGraph → (ℕ → ℝ) → (ℕ → ℝ) → MGraph) (C_lsst : ℝ)
+    (hLSST : HasLSSTSpec oracle C_lsst) :
+    BundleCoreHypsAt (exBundleEnv C_lsst) oracle (fun _ => idSparsify) 1 exBundleG₀.m
+      exBundleDyn :=
+  bundleCoreHypsAt_of_B_ge_m hLSST (idSparsify_spec exBundleG₀.m)
+    (by simp [exBundleEnv, exBundleDyn_G0])
+
+lemma exBundleDyn_instHyps (oracle : MGraph → (ℕ → ℝ) → (ℕ → ℝ) → MGraph) (C_lsst : ℝ)
+    (hLSST : HasLSSTSpec oracle C_lsst) :
+    BundleInstanceHyps (exBundleEnv C_lsst) oracle (fun _ => idSparsify) 1 3 exBundleDyn where
+  hLSST := hLSST
+  hSp := idSparsify_spec exBundleG₀.m
+  hB_bound := (exBundleDyn_hypsAt oracle C_lsst hLSST).hB_bound
+  hComp_bound := by
+    change ((exBundleG₀.n : ℝ) ≤ (1 : ℝ) * ((exBundleG₀.m : ℝ) + 1))
+    rw [exBundleG₀_n, exBundleG₀_m]
+    norm_num
+
+/-- **Unconditional simultaneous non-vacuity of all hypotheses** of `IsSpecOrdUpTo`,
+`BundleCoreHypsAt`, `BundleInstanceHyps`, `OrderedUpTo`, `WeakHiddenStable`, and
+`bundleLemma_5_17_mwu_at` on `(exBundleDyn, exBundleOrd)` with `k = 1, τ = 3`. -/
+theorem ex_bundle_hyps_simultaneous :
+    ∃ oracle C_lsst, HasLSSTSpec oracle C_lsst ∧
+      ∃ Ψ : ℝ, ∃ c w : ℕ → ℕ → ℝ,
+      let E := exBundleEnv C_lsst
+      (bundleCoreParams E).Valid ∧
+      0 < (1 : ℕ) ∧
+      (exBundleDyn.G 0).IsValid ∧
+      (exBundleDyn.G 0).V.Nonempty ∧
+      (∀ u ∈ (exBundleDyn.G 0).V, ∀ v ∈ (exBundleDyn.G 0).V, (exBundleDyn.G 0).Connected u v) ∧
+      exBundleDyn.IsValid 3 ∧
+      LengthsStable exBundleDyn 3 ∧
+      WeakHiddenStable exBundleDyn 3 Ψ c w ∧
+      OrderedUpTo exBundleDyn 3 2 exBundleOrd ∧
+      (((Finset.Icc 1 3).sum fun s => (exBundleDyn.U s).length : ℕ) : ℝ) ≤
+        SparseCoreTool.updateThreshold 1 (exBundleDyn.G 0).m (exBundleDyn.G 0).n ∧
+      BundleCoreHypsAt E oracle (fun _ => idSparsify) 1 (exBundleDyn.G 0).m exBundleDyn ∧
+      BundleInstanceHyps E oracle (fun _ => idSparsify) 1 3 exBundleDyn ∧
+      ((exBundleDyn.G 0).m : ℝ) + 2 ≤ (((exBundleDyn.G 0).n : ℝ) + 2) ^ (2 : ℕ) := by
+  obtain ⟨oracle, C_lsst, hLSST⟩ := theorem_2_2
+  obtain ⟨Ψ, _, hWeak⟩ := MinCostFlow.Chain.exists_weakHiddenStable_zero exBundleDyn_len_pos
+  have hm_poly : ((exBundleDyn.G 0).m : ℝ) + 2 ≤ (((exBundleDyn.G 0).n : ℝ) + 2) ^ (2 : ℕ) := by
+    rw [exBundleDyn_G0, exBundleG₀_m, exBundleG₀_n]
+    norm_num
+  exact ⟨oracle, C_lsst, hLSST, Ψ, _, _, bundleCoreParams_valid _, Nat.one_pos,
+    exBundleG₀_valid, exBundleG₀_V_nonempty, exBundleG₀_connected, exBundleDyn_valid,
+    exBundleDyn_lengthsStable, hWeak, exBundleDyn_orderedUpTo, exBundleDyn_thresh,
+    exBundleDyn_hypsAt oracle C_lsst hLSST, exBundleDyn_instHyps oracle C_lsst hLSST, hm_poly⟩
+
+/-- **Unconditional non-vacuity for `bundleLemma_5_17_mwu`** (`μ = 2`),
+**`bundleLemma_5_17_embedsSurviving`** (`ToolEmbedsSurvivingOrdUpTo`),
+**`bundleLemma_5_17_toolNoReinsertOrdUpTo`** (`ToolNoReinsertOrdUpTo`), and
+**`bundleLemma_5_17_orderedUpTo`** on `(exBundleDyn, exBundleOrd)`. -/
+theorem ex_bundle_side_uncond :
+    ∃ oracle C_lsst, HasLSSTSpec oracle C_lsst ∧
+      let T := sparseCoreBundleTool oracle C_lsst 1 (fun _ => idSparsify)
+      (∀ t ≤ 3, ∀ e ∈ (exBundleDyn.G t).E,
+        (∑ j ∈ Finset.range 1, (T.lsfs (T.runOrd 1 exBundleDyn exBundleOrd t).1 j).wstr e) /
+            ((1 : ℕ) : ℝ) ≤
+          ((2 : ℕ) : ℝ) * (26 * mwuK0 C_lsst + 128) *
+            (Real.log (((exBundleDyn.G t).n : ℝ) + 2)) ^ 7) ∧
+      T.ToolEmbedsSurvivingOrdUpTo ∧
+      T.ToolNoReinsertOrdUpTo ∧
+      (∀ j < 1, OrderedUpTo (T.coreInstanceOrd 1 exBundleDyn exBundleOrd j) 3 2
+        (fun t => T.rot (T.runOrd 1 exBundleDyn exBundleOrd t).1 j)) := by
+  obtain ⟨oracle, C_lsst, hLSST⟩ := theorem_2_2
+  have hm_poly : ((exBundleDyn.G 0).m : ℝ) + 2 ≤ (((exBundleDyn.G 0).n : ℝ) + 2) ^ (2 : ℕ) := by
+    rw [exBundleDyn_G0, exBundleG₀_m, exBundleG₀_n]
+    norm_num
+  exact ⟨oracle, C_lsst, hLSST,
+    bundleLemma_5_17_mwu C_lsst 1 2 oracle (fun _ => idSparsify) hLSST exBundleOrd
+      Nat.one_pos exBundleG₀_valid exBundleDyn_valid exBundleDyn_len_pos
+      exBundleDyn_lengthsStable hm_poly,
+    bundleLemma_5_17_embedsSurviving oracle C_lsst 1 (fun _ => idSparsify),
+    bundleLemma_5_17_toolNoReinsertOrdUpTo oracle C_lsst 1 le_rfl idSparsifyParams
+      (fun _ => idSparsify) hLSST idSparsify_spec,
+    fun j hj => bundleLemma_5_17_orderedUpTo oracle C_lsst 1 le_rfl (idSparsifyParams exBundleG₀.m)
+      (fun _ => idSparsify) hLSST 1 exBundleG₀.m exBundleG₀.n 3 Nat.one_pos exBundleDyn
+      exBundleG₀_valid (exBundleDyn_len_pos 0 (Nat.zero_le 3)) exBundleDyn_valid le_rfl le_rfl
+      exBundleDyn_thresh (idSparsify_spec exBundleG₀.m) exBundleOrd exBundleDyn_orderedUpTo j hj⟩
+
+/-- **Non-vacuity for `bundleLemma_5_17_isSpecOrdNoHiddenUpTo_of_B_ge_m`** and
+**`bundleLemma_5_17_isSpecOrdUpTo_of_B_ge_m`**: builds a concrete `(E, oracle, sparsify)`
+satisfying `IsSpecOrdUpTo` and `IsSpecOrdNoHiddenUpTo` with `bundleCoreParams E`. -/
+theorem ex_bundle_isSpecOrdUpTo :
+    ∃ oracle C_lsst, HasLSSTSpec oracle C_lsst ∧
+      let E := exBundleEnv C_lsst
+      let T := sparseCoreBundleTool oracle E.C_lsst E.L (fun _ => idSparsify)
+      let P := bundleCoreParams E
+      P.Valid ∧ T.IsSpecOrdUpTo P ∧ T.IsSpecOrdNoHiddenUpTo P := by
+  obtain ⟨oracle, C_lsst, hLSST⟩ := theorem_2_2
+  have hSpec := bundleLemma_5_17_isSpecOrdUpTo_of_B_ge_m
+    (exBundleEnv C_lsst) oracle (fun _ => idSparsify) hLSST idSparsify_spec (fun m => Nat.le_succ m)
+  exact ⟨oracle, C_lsst, hLSST, bundleCoreParams_valid _, hSpec, hSpec.toNoHidden⟩
+
+/-- **Concrete instantiation of `bundleLemma_5_17_inst`** on `(exBundleDyn, exBundleOrd)`. -/
+theorem ex_bundle_lemma_5_17_inst :
+    ∃ oracle C_lsst, HasLSSTSpec oracle C_lsst ∧
+      ∃ Ψ : ℝ, ∃ c w : ℕ → ℕ → ℝ,
+      let E := exBundleEnv C_lsst
+      let T := sparseCoreBundleTool oracle E.C_lsst E.L (fun _ => idSparsify)
+      let P := bundleCoreParams E
+      let st := fun t => (T.runOrd 1 exBundleDyn exBundleOrd t).1
+      let U_S := fun t => (T.runOrd 1 exBundleDyn exBundleOrd t).2
+      let m₀ := exBundleG₀.m
+      let n₀ := exBundleG₀.n
+      WeakHiddenStable exBundleDyn 3 Ψ c w ∧
+      OrderedUpTo exBundleDyn 3 2 exBundleOrd ∧
+      (∀ t ≤ 3, ∀ j < 1,
+        (T.lsfs (st t) j).Holds (exBundleDyn.G t) (exBundleDyn.ℓ t) (P.σ 1 (exBundleDyn.G t).n) ∧
+        IsSparsifiedCoreGraphAt (exBundleDyn.G t) (T.lsfs (st t) j) (exBundleDyn.ℓ t)
+          ((1 : ℕ) : ℝ) (P.γ_ℓ m₀) (P.γ_c m₀) m₀ (T.S (st t) j) (T.emb (st t) j) ∧
+        ((T.lsfs (st t) j).F.R.card : ℝ) ≤
+          P.c_R * ((m₀ : ℝ) / ((1 : ℕ) : ℝ) +
+            (((Finset.Icc 1 t).sum fun s => (exBundleDyn.U s).length : ℕ) : ℝ) *
+              (Real.log ((n₀ : ℝ) + 2)) ^ 2 + 1)) ∧
+      (∀ t, 1 ≤ t → t ≤ 3 → ∀ j < 1,
+        (T.lsfs (st t) j).F.F.E ⊆ (T.lsfs (st (t - 1)) j).F.F.E ∧
+        (∀ e ∈ (exBundleDyn.G t).E, e ∈ (exBundleDyn.G (t - 1)).E →
+          (∀ u ∈ exBundleDyn.U t, ¬ u.Inserts e) →
+          (T.lsfs (st t) j).wstr e = (T.lsfs (st (t - 1)) j).wstr e) ∧
+        (∀ e ∈ (exBundleDyn.G t).E, (∃ u ∈ exBundleDyn.U t, u.Inserts e) →
+          (T.lsfs (st t) j).wstr e = 1) ∧
+        (T.S (st (t - 1)) j).BatchIsValid (U_S t j) ∧
+        T.S (st t) j = (T.S (st (t - 1)) j).applyBatch (U_S t j)) ∧
+      (∀ t ≤ 3, ∀ j < 1,
+        (((Finset.Icc 1 t).sum fun s => (U_S s j).length : ℕ) : ℝ) ≤
+          P.γ_r m₀ * (((Finset.Icc 1 t).sum fun s => (exBundleDyn.U s).length : ℕ) : ℝ) ∧
+        (((Finset.Icc 1 t).sum fun s => (T.S (st (s - 1)) j).batchEnc (U_S s j) : ℕ) : ℝ) ≤
+          P.γ_r m₀ * ((m₀ : ℝ) / ((1 : ℕ) : ℝ) +
+            (((Finset.Icc 1 t).sum fun s => (exBundleDyn.U s).length : ℕ) : ℝ))) ∧
+      (∀ j < 1, ∃ Ψ' : ℝ,
+        WeakHiddenStable (T.coreInstanceOrd 1 exBundleDyn exBundleOrd j) 3 Ψ'
+          (T.coreCOrd 1 exBundleDyn exBundleOrd c j) (T.coreWOrd 1 exBundleDyn exBundleOrd w j)) ∧
+      (∀ j < 1, OrderedUpTo (T.coreInstanceOrd 1 exBundleDyn exBundleOrd j) 3 2
+        (fun t => T.rot (st t) j)) ∧
+      ((T.cost (st 3) : ℝ) ≤
+        P.c_T * ((m₀ : ℝ) + 1) * ((1 : ℕ) : ℝ) * (((1 : ℕ) : ℝ) + 1) * P.γ_r m₀ *
+          (Real.log ((m₀ : ℝ) + (n₀ : ℝ) + 2)) ^ P.p_T) := by
+  obtain ⟨oracle, C_lsst, hLSST⟩ := theorem_2_2
+  obtain ⟨Ψ, _, hWeak⟩ := MinCostFlow.Chain.exists_weakHiddenStable_zero exBundleDyn_len_pos
+  have hL517 := bundleLemma_5_17_inst (exBundleEnv C_lsst) oracle
+    (fun _ => idSparsify) 1 3 exBundleDyn exBundleOrd Ψ _ _ Nat.one_pos exBundleG₀_valid
+    exBundleDyn_valid exBundleDyn_lengthsStable hWeak exBundleDyn_orderedUpTo exBundleDyn_thresh
+    (exBundleDyn_hypsAt oracle C_lsst hLSST)
+  refine ⟨oracle, C_lsst, hLSST, Ψ, _, _, hWeak, exBundleDyn_orderedUpTo,
+    fun t ht j hj => ?_, hL517.2.1, hL517.2.2.1, hL517.2.2.2.1, hL517.2.2.2.2.1,
+    hL517.2.2.2.2.2⟩
+  have h1 := hL517.1 t ht j hj
+  exact ⟨h1.1, h1.2.1, h1.2.2 exBundleG₀_connected⟩
+
+end
+
+end MinCostFlow.SparseCore

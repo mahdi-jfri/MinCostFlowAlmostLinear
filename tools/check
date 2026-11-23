@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Build the library and check it: the root file imports every file, no forbidden words appear,
+# and every declaration uses only Lean's three standard axioms. Prints CHECK PASSED at the end.
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+python3 tools/gen_root.py --check
+if grep -rn -E '\b(sorry|native_decide|ofReduceBool|implemented_by|extern|admit)\b|^\s*axiom ' MinCostFlow --include='*.lean'; then
+  echo "CHECK FAILED: forbidden word above"; exit 1
+fi
+lake build MinCostFlow Checks Solution
+echo "CHECK PASSED"

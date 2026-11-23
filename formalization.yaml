@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+# formalization.yaml (v0.4): https://github.com/mathlib-initiative/formalization.yaml
+
+version: "v0.4"
+
+project:
+  name: "Deterministic almost-linear-time minimum-cost flow"
+  description: >-
+    A Lean 4 proof of Theorem 1.1 of van den Brand, Chen, Kyng, Liu, Peng, Probst Gutenberg,
+    Sachdeva and Sidford: there is a deterministic algorithm that, given a graph with m edges,
+    integral demands and capacities bounded by U and integral costs bounded by C, computes an
+    exact minimum-cost flow in time m^(1+o(1)) log U log C. The algorithm is one program for a
+    word RAM, and the proof shows that on every well-formed instance it halts with a correct
+    answer within K*n + (m+2)^(1+eps(m)) * log(U+2) * log(C+2) steps, with eps(m) tending to 0.
+    Every cited result that the paper uses is proved in the library, or replaced by a proof of
+    the step that uses it.
+  authors: ["Mahdi JafariRaviz"]
+  responsible_maintainers: ["Mahdi JafariRaviz"]
+  license: "Apache-2.0"
+
+sources:
+  - title: "A Deterministic Almost-Linear Time Algorithm for Minimum-Cost Flow"
+    authors: ["Jan van den Brand", "Li Chen", "Rasmus Kyng", "Yang P. Liu", "Richard Peng",
+              "Maximilian Probst Gutenberg", "Sushant Sachdeva", "Aaron Sidford"]
+    id: "arXiv:2309.16629v1"
+    type: "article"
+    location: "Theorem 1.1"
+    relationship: "formalizes"
+    author_endorsement: "not-contacted"
+
+related_formalizations:
+  - id: "https://github.com/mahdi-jfri/WordRam"
+    relationship: "builds-on"
+    note: >-
+      The machine model of the statement (WordRAM/Model.lean), and the program logic, contracts
+      and linking that the proofs use.
+
+classification:
+  arxiv: ["cs.DS"]
+  msc2020: ["68W40", "90C35", "05C21"]
+
+status:
+  scope: "Theorem 1.1 of the paper, in full."
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms: ["propext", "Classical.choice", "Quot.sound"]
+  main_results:
+    - declaration: "MinCostFlow.theorem_1_1"
+      file: "Comparator/Solution.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+
+automation:
+  methods:
+    - method: "agent"
+
+fidelity:
+  divergences: >-
+    The paper does not fix a machine model. The statement fixes one: the deterministic part of a
+    word RAM with words of c*log(N) bits, from the package WordRAM. The time bound has an added
+    term K*n, since a program must read all n demands, and it reads m, U and C as m+2, U+2 and
+    C+2. When n <= m+1 the added term is absorbed. Some steps of the proof differ from the paper
+    where the printed argument has a gap (Theorems 4.6, 5.1, 8.6 and B.1, Lemma 5.17 and
+    Definition 5.8), and Theorem 3.9 of Chuzhoy and Saranurak is replaced by a direct proof of
+    Theorem 8.1. None of these changes affects Theorem 1.1. README.md gives the details.
+
+review:
+  status: "self-assessed"
+
+alignment:
+  namespace: "MinCostFlow"
+  statements:
+    - source: "Theorem 1.1"
+      lean: "MinCostFlow.theorem_1_1"
+      module: "Comparator/Solution.lean"
+      status: "proved"
