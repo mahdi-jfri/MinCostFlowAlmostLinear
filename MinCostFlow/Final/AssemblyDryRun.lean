@@ -114,11 +114,20 @@ instantiated on the `[AN19]` program `anProgram`. -/
 def dryLSFInitUsed : ℕ → ℕ → LSFInit :=
   dryLSFInit SparseCore.Program.canonicalLSFInit
 
+/-- `lemma55RhoConst K = 10 * c` when `defaultK_sigma K = c`. Here `K` and `c` are variables, so
+no checker tries to compute `defaultK_sigma K` when it checks the unfolding of
+`lemma55RhoConst`. For the concrete `anK` it cannot finish that computation, since `anK` comes
+from `Classical.choose`. -/
+private theorem lemma55RhoConst_eq_of {K : ℝ} {c : ℕ}
+    (h : MinCostFlow.LSF.Program.defaultK_sigma K = c) :
+    MinCostFlow.LSF.Program.lemma55RhoConst K = 10 * c := by
+  unfold MinCostFlow.LSF.Program.lemma55RhoConst
+  rw [h]
+
 /-- Explicit value of `lemma55RhoConst anK` (`= 59045924790352281600`). -/
 theorem anRhoConst_eq :
-    MinCostFlow.LSF.Program.lemma55RhoConst anK = 59045924790352281600 := by
-  unfold MinCostFlow.LSF.Program.lemma55RhoConst
-  rw [anDefaultK_sigma_eq]
+    MinCostFlow.LSF.Program.lemma55RhoConst anK = 59045924790352281600 :=
+  lemma55RhoConst_eq_of anDefaultK_sigma_eq
 
 /-- Explicit upper bound `Nat.log 2 (lemma55RhoConst anK + 1) ≤ 65` on the constant term in
 `canonLw anK`. -/
