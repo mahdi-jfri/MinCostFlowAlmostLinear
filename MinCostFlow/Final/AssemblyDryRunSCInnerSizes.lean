@@ -210,13 +210,19 @@ theorem dryInnerCoreStepCap_mono (J : Circulation) (j : ℕ) :
   unfold dryInnerCoreStepCap
   exact Nat.mul_le_mul_left _ (Nat.add_le_add_left hb _)
 
-theorem branchBCapUL_dry_mono (J : Circulation) (j : ℕ) :
-    Monotone (fun u => branchBCapUL (dryInnerCoreStepCap J) u j) := by
+/-- The cap `branchBCapUL f u j` is monotone in `u` when every step `f j` is. The step `f` is a
+variable here, so the kernel never unfolds a concrete step function when it checks the recursion. -/
+private theorem branchBCapUL_mono_of {f : ℕ → ℕ → ℕ} (hf : ∀ j, Monotone (f j)) (j : ℕ) :
+    Monotone (fun u => branchBCapUL f u j) := by
   induction j with
   | zero => intro u₁ u₂ hu; exact hu
   | succ j ih =>
     intro u₁ u₂ hu
-    exact dryInnerCoreStepCap_mono J j (ih hu)
+    exact hf j (ih hu)
+
+theorem branchBCapUL_dry_mono (J : Circulation) (j : ℕ) :
+    Monotone (fun u => branchBCapUL (dryInnerCoreStepCap J) u j) :=
+  branchBCapUL_mono_of (dryInnerCoreStepCap_mono J) j
 
 theorem branchBCapBW_dry_mono (J : Circulation) (j : ℕ) :
     Monotone (fun u => branchBCapBW (dryInnerCoreStepCap J) u j) := by
