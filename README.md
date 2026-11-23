@@ -17,7 +17,9 @@ theorem MinCostFlow.theorem_1_1 : MinCostFlowStatement
 ```
 
 [`Comparator/Challenge.lean`](Comparator/Challenge.lean) states the theorem, and
-[`Comparator/Solution.lean`](Comparator/Solution.lean) proves it.
+[`Comparator/Solution.lean`](Comparator/Solution.lean) proves it. The challenge imports only
+Mathlib: it repeats the three files of the statement word for word, so it can be checked without
+the library.
 
 - The theorem depends only on `propext`, `Classical.choice` and `Quot.sound`.
 - The library has about 5,000 files and 1.7 million lines of Lean, excluding dependencies.
@@ -121,7 +123,7 @@ because the printed argument has a gap there. None of the changes affects Theore
 | `MinCostFlow/Expander`, `ExpanderDecomp`, `ExplicitExpander`, `HierPaths` | expanders, the expander decomposition, the explicit expander and the hierarchy of embedded matchings |
 | `MinCostFlow/Final` | the program of Theorem 1.1 and the proof of its bounds |
 | `Checks` | the axiom check, and checks of the definitions on small examples |
-| `Comparator/Challenge.lean` | the statement, for comparator |
+| `Comparator/Challenge.lean` | the statement, for comparator, with only Mathlib imports |
 | `Comparator/Solution.lean` | the theorem |
 
 ## Build
@@ -139,10 +141,14 @@ lake build
 The build prints one expected `sorry` warning, from `Comparator/Challenge.lean`. `tools/check`
 checks that the root file `MinCostFlow.lean` imports every file of the library and that no
 forbidden word (`sorry`, `native_decide`, `axiom` and a few others) appears in it. Then it builds
-the library, the checks and the solution. `Checks/Axioms.lean` fails unless every declaration of
-the library and of WordRAM uses only `propext`, `Classical.choice` and `Quot.sound`.
+the library, the checks, the challenge and the solution. `Checks/Axioms.lean` fails unless every
+declaration of the library and of WordRAM uses only `propext`, `Classical.choice` and
+`Quot.sound`. Last, it checks that `Comparator/Challenge.lean` is the file that
+`tools/gen_challenge.py` writes from `WordRAM/Model.lean`, `MinCostFlow/Statement/Problem.lean`
+and `MinCostFlow/Statement/Main.lean`.
 
 [`comparator.json`](comparator.json) sets up [comparator](https://github.com/leanprover/comparator)
-for `Comparator/Challenge.lean` and `Comparator/Solution.lean`.
+for `Comparator/Challenge.lean` and `Comparator/Solution.lean`. Comparator checks that every
+definition the statement uses is the same in the challenge and in the library.
 
 Licensed under [Apache-2.0](LICENSE).
