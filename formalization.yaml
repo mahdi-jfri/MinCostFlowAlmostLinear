@@ -54,6 +54,10 @@ status:
 automation:
   methods:
     - method: "agent"
+  notes: >-
+    AI agents wrote all of the Lean code, under the direction of the author. This includes the
+    statement of Theorem 1.1 (MinCostFlow/Statement/Problem.lean and
+    MinCostFlow/Statement/Main.lean) and the machine model (WordRAM/Model.lean).
 
 fidelity:
   divergences: >-
@@ -67,6 +71,14 @@ fidelity:
 
 review:
   status: "self-assessed"
+  reviewers: ["Mahdi JafariRaviz"]
+  notes: >-
+    The author checked by hand that the statement and the machine model match Theorem 1.1 of the
+    paper, with the differences listed under fidelity. These are the three files that
+    Comparator/Challenge.lean repeats: MinCostFlow/Statement/Problem.lean,
+    MinCostFlow/Statement/Main.lean and WordRAM/Model.lean. The proofs were not read by hand.
+    Lean's kernel checks every proof, so the trust in the result rests on the statement, not on
+    how the proofs were written. No other person has reviewed the formalization.
 
 alignment:
   namespace: "MinCostFlow"
