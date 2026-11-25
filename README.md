@@ -57,8 +57,11 @@ the randomized word RAM of the package [WordRAM](https://github.com/mahdi-jfri/W
 (`WordRAM/Model.lean`, pinned in [`lakefile.toml`](lakefile.toml)). The statement uses only that
 file: `Program`, `RunsTo`, `wordSize` and `Program.IsDeterministic`. Words have `c·log(N)` bits,
 where `N` is the input length plus its largest number, and every operation costs one step. The
-paper's fixed-point numbers take several words each, and the library implements their arithmetic
-on words. The package also provides the program logic, contracts and linking that the proofs use.
+input writes every integer of the instance in base `2^k`, where `k` is the number of bits of the
+length `z` of the instance in bits, and the answer does the same. So the input has at most `2z`
+words, each less than `2z`, and words have `Θ(c·log z)` bits. This is within the paper's
+`O(log^{O(1)} z)`. An integer with more than `k` bits takes several words, and so does each of
+the paper's fixed-point numbers. The library implements their arithmetic on words. The package also provides the program logic, contracts and linking that the proofs use.
 
 ## Cited results
 
@@ -121,7 +124,9 @@ because the printed argument has a gap there. None of the changes affects Theore
 | `MinCostFlow/Bundle`, `SparseCore`, `LastLevelProgram` | the core graphs, their bundles and the last level of the chain |
 | `MinCostFlow/Spanner`, `DynSpanner` | the static and dynamic spanners (Section 8) |
 | `MinCostFlow/Expander`, `ExpanderDecomp`, `ExplicitExpander`, `HierPaths` | expanders, the expander decomposition, the explicit expander and the hierarchy of embedded matchings |
-| `MinCostFlow/Final` | the program of Theorem 1.1 and the proof of its bounds |
+| `MinCostFlow/Narrow`, `NarrowProg` | the reduction of Theorem 1.1 to the inner solver on numbers of several words: reading the input, the checks, the scaling of capacities and costs, and the answer |
+| `MinCostFlow/NarrowTop` | the program of Theorem 1.1 and the proof of its bounds |
+| `MinCostFlow/Final` | the inner solver and the proof of its bounds |
 | `Checks` | the axiom check, and checks of the definitions on small examples |
 | `Comparator/Challenge.lean` | the statement, for comparator, with only Mathlib imports |
 | `Comparator/Solution.lean` | the theorem |

@@ -86,7 +86,7 @@ theorem graphCoefficientTable_meetsContract {w h b : ℕ} {p : Program}
       mem (a+(if signed then 5 else 3)+1+5*i) < 2^w ∧
       [if signed then mem (a+(if signed then 5 else 3)+5*i) else 0,
         mem (a+(if signed then 5 else 3)+1+5*i)] =
-        encodeInt (stridedInteger signed mem (a+(if signed then 5 else 3)) i) ∧
+        encodeSignedPair (stridedInteger signed mem (a+(if signed then 5 else 3)) i) ∧
       Num.Fits h L (stridedInteger signed mem (a+(if signed then 5 else 3)) i) ∧
       Num.Fits h L (stridedInteger signed mem (a+(if signed then 5 else 3)) i*(2:ℤ)^P) := by
     intro i hi
@@ -99,7 +99,7 @@ theorem graphCoefficientTable_meetsContract {w h b : ℕ} {p : Program}
       · rw [show a+3+1+5*i=a+(4+5*i) by omega]
         exact hmemBound _ (by omega)
       · unfold stridedInteger
-        simp [Num.decodeIntWords,encodeInt]
+        simp [Num.decodeIntWords,encodeSignedPair]
       · rw [hvalue]
         exact (hfits e).1
       · rw [hvalue]

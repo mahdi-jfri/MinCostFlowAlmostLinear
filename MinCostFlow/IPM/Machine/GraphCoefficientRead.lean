@@ -36,7 +36,7 @@ theorem zeroLower_endpoints_at (I : Instance) (hI : I.IsValid) (mem : ℕ → �
 /-- The two cost words are exactly the shared canonical integer encoding. -/
 theorem zeroLower_cost_at (I : Instance) (hI : I.IsValid) (mem : ℕ → ℕ) (a : ℕ)
     (hat : ListAt mem a (zeroLowerWords I)) (e : Fin I.m) :
-    [mem (a+5+5*e.val),mem (a+6+5*e.val)]=encodeInt (I.edge e).cost := by
+    [mem (a+5+5*e.val),mem (a+6+5*e.val)]=encodeSignedPair (I.edge e).cost := by
   rw [← zeroLowerCirculation_words I hI] at hat
   have hh := ((Scaling.Machine.solverWords_at_iff (zeroLowerCirculation I hI) mem a).mp hat).2.2
   have hsign := hh e ⟨3,by decide⟩
@@ -57,7 +57,7 @@ theorem zeroLower_strided_cost (I : Instance) (hI : I.IsValid) (mem : ℕ → �
   have hh := zeroLower_cost_at I hI mem a hat e
   have hd := congrArg (fun xs : List ℕ => Num.decodeIntWords (xs.getD 0 0) (xs.getD 1 0)) hh
   simpa only [stridedInteger,↓reduceIte,show a+5+1+5*e.val=a+6+5*e.val by omega,
-    List.getD_cons_zero,List.getD_cons_succ,encodeInt,Num.decodeIntWords_encodeInt] using hd
+    List.getD_cons_zero,List.getD_cons_succ,encodeSignedPair,Num.decodeIntWords_encodeInt] using hd
 
 /-- Unsigned stride-five decoding is lossless on the graph's upper capacity. -/
 theorem zeroLower_strided_capacity (I : Instance) (hI : I.IsValid) (mem : ℕ → ℕ) (a : ℕ)

@@ -35,7 +35,7 @@ def signedSubtractContract (w : ℕ) (x y : ℤ) : Contract :=
     (fun args _ => ∃ heap, args =
       [if x < 0 then 1 else 0, x.natAbs, if y < 0 then 1 else 0, y.natAbs, heap] ∧
       x.natAbs + y.natAbs < 2 ^ w)
-    (fun args _ mem' => ListAt mem' (heapArg args) (encodeInt (x - y)))
+    (fun args _ mem' => ListAt mem' (heapArg args) (encodeSignedPair (x - y)))
     (fun _ _ => 120) (fun _ _ => 2)
   { C with post := fun args mem out mem' => C.post args mem out mem' ∧
       out = heapArg args + 2 }
@@ -93,9 +93,9 @@ theorem signedSubtract_meetsContract {w b : ℕ} {p : Program}
     have hout : out < 2 ^ w := by omega
     refine runs_ret_le (v := out) (by eval_expr) ?_ ?_
     · change (heap ≤ out ∧ out ≤ heap + 2 ∧ (∀ a < heap, memS a = mem a) ∧
-        ZeroFrom memS out ∧ ListAt memS heap (encodeInt (x - y))) ∧ out = heap + 2
+        ZeroFrom memS out ∧ ListAt memS heap (encodeSignedPair (x - y))) ∧ out = heap + 2
       change (heap ≤ out ∧ out ≤ heap + 2 ∧ (∀ a < heap, memS a = mem a) ∧
-        ZeroFrom memS out ∧ ListAt memS heap (encodeInt (x + -y))) ∧ out = heap + 2 at hpostS
+        ZeroFrom memS out ∧ ListAt memS heap (encodeSignedPair (x + -y))) ∧ out = heap + 2 at hpostS
       simpa only [sub_eq_add_neg] using hpostS
     · simp only [signedSubtractContract, heapContract, signedAddContract,
         argsSize_cons, argsSize_nil, Expr.size_bin, Expr.size_const, Expr.size_reg]; omega

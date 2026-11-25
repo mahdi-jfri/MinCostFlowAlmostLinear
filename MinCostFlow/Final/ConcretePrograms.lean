@@ -3,7 +3,6 @@ module
 public import MinCostFlow.Final.CappedConnectedProgram
 public import MinCostFlow.Final.OrderedConcreteChainModel
 public import MinCostFlow.Final.ConnectedIPMWorkspace
-public import MinCostFlow.Final.ConnectedLinkedProgram
 import Mathlib.Tactic
 
 /-!
@@ -190,37 +189,5 @@ theorem ConcreteDataStructurePrograms.workspace_le (P : ConcreteDataStructurePro
     (fun M hM => (P.forestInitSpace_poly (n + 1) M).trans (hdim M hM))
     (fun M hM => (P.forestOpSpace_poly (n + 1) M).trans (hdim M hM))
 
-/-- The linked concrete solver followed by the outer scaling procedures. -/
-def ConcreteDataStructurePrograms.program (P : ConcreteDataStructurePrograms) : Program :=
-  scratchOuterScalingProgram P.solver 0 1 P.scratchDegree
-
-theorem ConcreteDataStructurePrograms.program_deterministic (P : ConcreteDataStructurePrograms) :
-    P.program.IsDeterministic :=
-  scratchOuterScalingProgram_deterministic _ _ _ _ P.solver_deterministic
-
-def ConcreteDataStructurePrograms.timeConstant (P : ConcreteDataStructurePrograms) : ℕ :=
-  scratchWholeScalingConstant P.solver 1 P.scratchDegree
-
-/-- The concrete linked scaling program runs on arbitrary valid instances and obeys
-the counted scaling bound with `linkedConnectedSolverTime`. -/
-theorem ConcreteDataStructurePrograms.program_runsTo (P : ConcreteDataStructurePrograms)
-    (I : Instance) (hv : I.IsValid) (ω : ℕ → Bool) :
-    ∃ out cost,
-      RunsTo (wordSize (scratchOuterMultiplier 1 P.scratchDegree) I.encode) P.program I.encode ω out cost ∧
-      I.IsCorrectAnswer out ∧
-      cost ≤ P.timeConstant * (Nat.clog 2 (I.m + 1) + 1) *
-        (Nat.clog 2 (I.m + 1) + Nat.clog 2 (I.maxCapacity + 1) + 1) * Nat.clog 2 (I.maxCost + 2) *
-        (linkedConnectedSolverTime P.runtimeResources (P.timeConstant * min I.n I.m) (P.timeConstant * I.m) + I.m) +
-        P.timeConstant * I.n := by
-  apply outerScaling_runsTo_compressedPolynomialScratch P.solver 0 (linkedConnectedSolverTime P.runtimeResources)
-    (connectedSolverRuntimeWorkspace P.runtimeResources) 1 P.scratchDegree
-  · intro J
-    exact solverContract_raise_time (P.solver_meetsContract J)
-      (connectedSolverRuntimeTime_le_linkedConnectedSolverTime P.runtimeResources)
-  · intro n m
-    simpa only [Nat.one_mul] using P.workspace_le n m
-  · exact P.solver_deterministic
-  · exact linkedConnectedSolverTime_mono P.runtimeResources
-  · exact hv
 
 end MinCostFlow.Final

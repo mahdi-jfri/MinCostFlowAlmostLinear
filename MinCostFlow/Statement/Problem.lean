@@ -2,6 +2,8 @@ module
 
 public import Mathlib.Algebra.BigOperators.Fin
 public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Nat.Digits.Defs
+public import Mathlib.Data.Nat.Log
 
 /-!
 # The minimum-cost flow problem
@@ -58,7 +60,10 @@ How the definitions read the paper:
   turns a fractional flow into an integral one of no larger cost.
 
 The file also fixes how instances and answers are written as lists of words for the machine of
-`WordRAM/Model.lean`.
+`WordRAM/Model.lean`. Let `z` be the length of the instance in bits (`Instance.bitLength`), and
+`k` the number of bits of `z` (`Instance.limbWidth`). Every integer of the instance is written in
+base `2 ^ k`, so a well-formed instance is written with words less than `2 ^ k ≤ 2z`. An integer
+with more than `k` bits takes several words.
 -/
 
 @[expose] public section
@@ -150,30 +155,55 @@ end Instance
 
 /-! ## Words -/
 
-/-- An integer written as two words: `1` if it is negative and `0` otherwise, then its absolute
-value. -/
-def encodeInt (z : ℤ) : List ℕ :=
-  [if z < 0 then 1 else 0, z.natAbs]
+/-- The number of bits of the integer `x`: one for its sign, and the `Nat.log 2 |x| + 1` binary
+digits of `|x|` (one digit for `0`). -/
+def intBits (x : ℤ) : ℕ :=
+  Nat.log 2 x.natAbs + 2
 
-/-- An edge written as words: its tail, its head, then its lower capacity, its upper capacity and
-its cost as integers. -/
-def Edge.encode (e : Edge) : List ℕ :=
-  e.tail :: e.head :: (encodeInt e.lower ++ encodeInt e.upper ++ encodeInt e.cost)
+/-- The number of bits of an edge: those of its tail, its head, its capacities and its cost. -/
+def Edge.bits (e : Edge) : ℕ :=
+  intBits e.tail + intBits e.head + intBits e.lower + intBits e.upper + intBits e.cost
 
 namespace Instance
 
-/-- The instance written as a list of words: `n`, `m`, the edges in order, then the demands in
-order. -/
+/-- The length `z` of the instance in bits, the `z` of the paper's model of computation (Section
+2, page 7): the bits of `n`, of `m`, of every edge and of every demand. -/
+def bitLength (I : Instance) : ℕ :=
+  intBits I.n + intBits I.m + (I.edges.map Edge.bits).sum + (I.demand.map intBits).sum
+
+/-- The limb width `k = ⌊log₂ z⌋ + 1`, the number of bits of `z = I.bitLength`. It satisfies
+`z < 2 ^ k ≤ 2z`. The integers of the instance and of the answer are written in base `2 ^ k`. -/
+def limbWidth (I : Instance) : ℕ :=
+  Nat.log 2 I.bitLength + 1
+
+end Instance
+
+/-- An integer written in base `2 ^ k`: `1` if it is negative and `0` otherwise, then the number
+of digits of its absolute value, then those digits, least significant first and with no leading
+zero digit (`Nat.digits`). Zero is written `[0, 0]`. -/
+def encodeInt (k : ℕ) (z : ℤ) : List ℕ :=
+  (if z < 0 then 1 else 0) :: (Nat.digits (2 ^ k) z.natAbs).length :: Nat.digits (2 ^ k) z.natAbs
+
+/-- An edge written as words: its tail, its head, then its lower capacity, its upper capacity and
+its cost as integers in base `2 ^ k`. -/
+def Edge.encode (k : ℕ) (e : Edge) : List ℕ :=
+  e.tail :: e.head :: (encodeInt k e.lower ++ encodeInt k e.upper ++ encodeInt k e.cost)
+
+namespace Instance
+
+/-- The instance written as a list of words: the limb width `k = I.limbWidth`, then `n`, `m`, the
+edges in order, then the demands in order, with every integer in base `2 ^ k`. -/
 def encode (I : Instance) : List ℕ :=
-  I.n :: I.m :: (I.edges.flatMap Edge.encode ++ I.demand.flatMap encodeInt)
+  I.limbWidth :: I.n :: I.m ::
+    (I.edges.flatMap (Edge.encode I.limbWidth) ++ I.demand.flatMap (encodeInt I.limbWidth))
 
 /-- `out` is a correct answer for `I`. Either `out = [0]` and no flow is feasible, or `out` is `1`
 followed by the values `f_0, …, f_{m-1}` of an integral minimum-cost flow `f`, each written as an
-integer. -/
+integer in base `2 ^ I.limbWidth`. -/
 def IsCorrectAnswer (I : Instance) (out : List ℕ) : Prop :=
   (out = [0] ∧ ∀ f, ¬ I.IsFeasible f) ∨
   ∃ f : Fin I.m → ℤ, I.IsMinCostFlow (fun j => (f j : ℝ)) ∧
-    out = 1 :: (List.finRange I.m).flatMap fun j => encodeInt (f j)
+    out = 1 :: (List.finRange I.m).flatMap fun j => encodeInt I.limbWidth (f j)
 
 end Instance
 

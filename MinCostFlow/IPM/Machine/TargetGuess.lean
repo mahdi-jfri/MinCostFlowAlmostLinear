@@ -23,16 +23,16 @@ def offsetTarget (radius offset : ℕ) : ℤ := (offset:ℤ)-radius
 
 /-- The sign-magnitude operands computed by the target encoder. -/
 theorem encodeInt_offsetTarget (radius offset : ℕ) :
-    encodeInt (offsetTarget radius offset)=
+    encodeSignedPair (offsetTarget radius offset)=
       if offset < radius then [1,radius-offset] else [0,offset-radius] := by
   by_cases h : offset < radius
   · have hneg : offsetTarget radius offset<0 := by unfold offsetTarget; omega
     have he : offsetTarget radius offset= -(↑(radius-offset):ℤ) := by unfold offsetTarget; omega
-    unfold encodeInt
+    unfold encodeSignedPair
     rw [ite_eq_left hneg,ite_eq_left h,he,Int.natAbs_neg,Int.natAbs_natCast]
   · have hpos : 0≤offsetTarget radius offset := by unfold offsetTarget; omega
     have he : offsetTarget radius offset=(↑(offset-radius):ℤ) := by unfold offsetTarget; omega
-    unfold encodeInt
+    unfold encodeSignedPair
     rw [ite_eq_right (not_lt_of_ge hpos),ite_eq_right h,he,Int.natAbs_natCast]
 
 /-- Arguments [offset,radius,L,P,heap]. Return the exact signed
@@ -45,10 +45,10 @@ def targetGuessBody (write : ℕ) : Stmt :=
 /-- Offset target writer with the exact three-block layout. -/
 def targetGuessContract (w h : ℕ) : Contract where
   pre args mem := ∃ offset radius L P heap,args=[offset,radius,L,P,heap] ∧
-    (fixedIntegerBlockContract w h).pre (encodeInt (offsetTarget radius offset)++[L,P,heap]) mem
+    (fixedIntegerBlockContract w h).pre (encodeSignedPair (offsetTarget radius offset)++[L,P,heap]) mem
   post args mem v final :=
     let n := offsetTarget (args.getD 1 0) (args.getD 0 0)
-    (fixedIntegerBlockContract w h).post (encodeInt n++args.drop 2) mem v final
+    (fixedIntegerBlockContract w h).post (encodeSignedPair n++args.drop 2) mem v final
   cost args _ := 100*args.getD 2 0+240
 
 /-- The target encoder uses only word arithmetic and calls. -/
@@ -116,7 +116,7 @@ theorem targetGuess_meetsContract {w h entry write : ℕ} {p : Program}
       simpa only [encodeInt_offsetTarget,hneg,ite_true,List.cons_append,List.nil_append] using hpre
     · intro v final newPos hout
       have hpost : (targetGuessContract w h).post [i,B,L,P,heap] mem v final := by
-        change (fixedIntegerBlockContract w h).post (encodeInt (offsetTarget B i)++[L,P,heap]) mem v final
+        change (fixedIntegerBlockContract w h).post (encodeSignedPair (offsetTarget B i)++[L,P,heap]) mem v final
         rw [encodeInt_offsetTarget,ite_eq_left hneg]
         exact hout
       have hv : v=heap+3*L := hout.2
@@ -132,7 +132,7 @@ theorem targetGuess_meetsContract {w h entry write : ℕ} {p : Program}
       simpa only [encodeInt_offsetTarget,hneg,ite_false,List.cons_append,List.nil_append] using hpre
     · intro v final newPos hout
       have hpost : (targetGuessContract w h).post [i,B,L,P,heap] mem v final := by
-        change (fixedIntegerBlockContract w h).post (encodeInt (offsetTarget B i)++[L,P,heap]) mem v final
+        change (fixedIntegerBlockContract w h).post (encodeSignedPair (offsetTarget B i)++[L,P,heap]) mem v final
         rw [encodeInt_offsetTarget,ite_eq_right hneg]
         exact hout
       have hv : v=heap+3*L := hout.2

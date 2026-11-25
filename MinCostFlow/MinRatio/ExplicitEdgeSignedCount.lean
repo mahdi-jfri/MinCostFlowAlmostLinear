@@ -34,7 +34,7 @@ open WordRAM Scaling.Machine
     ExplicitEdgesAt mem base edges ∧ base + 2 * edges.length ≤ dst ∧ dst + 2 < 2 ^ w
   post args mem ret mem' := ret = heapArg args + 2 ∧
     ListAt mem' (heapArg args)
-      (encodeInt ((edges.count (e, true) : ℤ) - (edges.count (e, false) : ℤ))) ∧
+      (encodeSignedPair ((edges.count (e, true) : ℤ) - (edges.count (e, false) : ℤ))) ∧
     ∀ x, x < heapArg args ∨ heapArg args + 2 ≤ x → mem' x = mem x
   cost _ _ := 68 * edges.length + 86
 
@@ -89,7 +89,7 @@ theorem explicitEdgeSignedCount_meetsContract {w entry count store : ℕ} {p : P
           refine runs_ret_le (v := ret) (by eval_expr) ?_ ?_
           · have henc := encodeInt_of_directional_counts f b
             rw [ite_eq_left hlt] at henc
-            change ret = dst + 2 ∧ ListAt out dst (encodeInt ((edges.count (e, true) : ℤ) -
+            change ret = dst + 2 ∧ ListAt out dst (encodeSignedPair ((edges.count (e, true) : ℤ) -
               (edges.count (e, false) : ℤ))) ∧ _
             rw [← hf, ← hb']
             exact ⟨hret, henc.symm ▸ hp₃.2.1, hp₃.2.2⟩
@@ -110,7 +110,7 @@ theorem explicitEdgeSignedCount_meetsContract {w entry count store : ℕ} {p : P
           refine runs_ret_le (v := ret) (by eval_expr) ?_ ?_
           · have henc := encodeInt_of_directional_counts f b
             rw [ite_eq_right hle] at henc
-            change ret = dst + 2 ∧ ListAt out dst (encodeInt ((edges.count (e, true) : ℤ) -
+            change ret = dst + 2 ∧ ListAt out dst (encodeSignedPair ((edges.count (e, true) : ℤ) -
               (edges.count (e, false) : ℤ))) ∧ _
             rw [← hf, ← hb']
             exact ⟨hret, henc.symm ▸ hp₃.2.1, hp₃.2.2⟩

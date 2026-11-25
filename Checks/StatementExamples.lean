@@ -59,9 +59,11 @@ theorem oneEdge_isFeasible_iff (f : Fin oneEdge.m → ℝ) :
       simp only [Instance.edge, oneEdge]
       norm_num
 
-/-- The answer `1, (0, 3)`: the flow that sends 3 units, written as the integer `3`. -/
-example : oneEdge.IsCorrectAnswer [1, 0, 3] := by
-  refine Or.inr ⟨fun _ => 3, ⟨(oneEdge_isFeasible_iff _).2 (by norm_num), fun g hg => ?_⟩, rfl⟩
+/-- The answer `1, (0, 1, 3)`: the flow that sends 3 units, written as the integer `3` (sign
+`0`, one digit, the digit `3`). -/
+example : oneEdge.IsCorrectAnswer [1, 0, 1, 3] := by
+  refine Or.inr ⟨fun _ => 3, ⟨(oneEdge_isFeasible_iff _).2 (by norm_num), fun g hg => ?_⟩,
+    by decide⟩
   have hg0 := (oneEdge_isFeasible_iff g).1 hg
   simp only [Instance.cost]
   rw [sum_of_eq_one (n := oneEdge.m) rfl, sum_of_eq_one (n := oneEdge.m) rfl, hg0]
@@ -116,8 +118,8 @@ theorem twoParallel_isFeasible : twoParallel.IsFeasible (fun j => if (j : ℕ) =
     interval_cases j <;> simp [Instance.edge, twoParallel]
 
 /-- The cheapest flow uses the cheap edge to its capacity: `f = (2, 1)`, of cost 5. -/
-example : twoParallel.IsCorrectAnswer [1, 0, 2, 0, 1] := by
-  refine Or.inr ⟨fun j => if (j : ℕ) = 0 then 2 else 1, ⟨?_, fun g hg => ?_⟩, rfl⟩
+example : twoParallel.IsCorrectAnswer [1, 0, 1, 2, 0, 1, 1] := by
+  refine Or.inr ⟨fun j => if (j : ℕ) = 0 then 2 else 1, ⟨?_, fun g hg => ?_⟩, by decide⟩
   · simpa using twoParallel_isFeasible
   · have h5 : twoParallel.cost (fun j => if (j : ℕ) = 0 then 2 else 1) = 5 := by
       simp only [Instance.cost]
@@ -143,9 +145,10 @@ def backward : Instance :=
   { n := 2, edges := [⟨0, 1, -4, 0, 0⟩], demand := [-2, 2] }
 
 /-- A flow may go against the direction of an edge: the two units go from 1 to 0 as the flow
-`-2`, written as the integer `-2`, that is, the words `1, 2`. -/
-example : backward.IsCorrectAnswer [1, 1, 2] := by
-  refine Or.inr ⟨fun _ => -2, ⟨⟨fun ⟨v, hv⟩ => ?_, fun ⟨j, hj⟩ => ?_⟩, fun g _ => ?_⟩, rfl⟩
+`-2`, written as the integer `-2`, that is, the words `1, 1, 2`. -/
+example : backward.IsCorrectAnswer [1, 1, 1, 2] := by
+  refine Or.inr ⟨fun _ => -2, ⟨⟨fun ⟨v, hv⟩ => ?_, fun ⟨j, hj⟩ => ?_⟩, fun g _ => ?_⟩,
+    by decide⟩
   · rw [sum_of_eq_one (n := backward.m) rfl]
     have hv : v < 2 := hv
     interval_cases v <;> simp [Instance.edge, Instance.d, Edge.b, backward]
@@ -163,8 +166,9 @@ def selfLoop : Instance :=
 
 /-- An edge from a vertex to itself has `b_e = 0`, so it only adds its cost: the cheapest flow
 fills it. -/
-example : selfLoop.IsCorrectAnswer [1, 0, 3] := by
-  refine Or.inr ⟨fun _ => 3, ⟨⟨fun ⟨v, hv⟩ => ?_, fun ⟨j, hj⟩ => ?_⟩, fun g hg => ?_⟩, rfl⟩
+example : selfLoop.IsCorrectAnswer [1, 0, 1, 3] := by
+  refine Or.inr ⟨fun _ => 3, ⟨⟨fun ⟨v, hv⟩ => ?_, fun ⟨j, hj⟩ => ?_⟩, fun g hg => ?_⟩,
+    by decide⟩
   · rw [sum_of_eq_one (n := selfLoop.m) rfl]
     have hv : v = 0 := by have : v < 1 := hv; omega
     subst hv
@@ -182,9 +186,32 @@ example : selfLoop.IsCorrectAnswer [1, 0, 3] := by
 /-- The bounds `U` and `C` of `twoParallel`. -/
 example : twoParallel.maxCapacity = 5 ∧ twoParallel.maxCost = 3 := by decide
 
-/-- The encoding of `oneEdge`: `n = 2`, `m = 1`, the edge `0, 1, (0, 0), (0, 5), (0, 1)`, and the
-demands `(0, 3), (1, 3)`. -/
-example : oneEdge.encode = [2, 1, 0, 1, 0, 0, 0, 5, 0, 1, 0, 3, 1, 3] := rfl
+/-- The length of `oneEdge` in bits is `z = 23`: 3 for `n = 2`, 2 for `m = 1`, 12 for the edge
+and 6 for the demands. So the limb width is `k = 5`, the number of bits of `23`. -/
+example : oneEdge.bitLength = 23 ∧ oneEdge.limbWidth = 5 := by decide
+
+/-- The encoding of `oneEdge`: `k = 5`, `n = 2`, `m = 1`, the edge `0, 1, (0, 0), (0, 1, 5),
+(0, 1, 1)`, and the demands `(0, 1, 3), (1, 1, 3)`. Each integer is its sign, its number of
+digits in base `2^5`, and its digits. -/
+example : oneEdge.encode = [5, 2, 1, 0, 1, 0, 0, 0, 1, 5, 0, 1, 1, 0, 1, 3, 1, 1, 3] := by decide
+
+/-- The edge of `oneEdge` with the capacity `2^40`. -/
+def bigEdge : Instance :=
+  { n := 2, edges := [⟨0, 1, 0, 2 ^ 40, 1⟩], demand := [3, -3] }
+
+/-- The length of `bigEdge` in bits is `z = 61`, so the limb width is `k = 6`. The capacity
+`2^40 = 16·64^6` takes seven digits in base `2^6`: six zeros, then `16`. -/
+example : bigEdge.bitLength = 61 ∧ bigEdge.limbWidth = 6 ∧
+    bigEdge.encode =
+      [6, 2, 1, 0, 1, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 16, 0, 1, 1, 0, 1, 3, 1, 1, 3] := by
+  decide
+
+/-- The machine's words grow with the length of the input in bits, not with its largest number:
+for `bigEdge` the word size with `c = 1` is 6 bits. With the capacity written as one word, as
+`[2, 1, 0, 1, 0, 0, 0, 2^40, 0, 1, 0, 3, 1, 3]`, it would be 41 bits. -/
+example : wordSize 1 bigEdge.encode = 6 ∧
+    wordSize 1 [2, 1, 0, 1, 0, 0, 0, 2 ^ 40, 0, 1, 0, 3, 1, 3] = 41 := by
+  decide
 
 /-! ## Deterministic programs -/
 

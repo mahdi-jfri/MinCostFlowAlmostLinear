@@ -1,6 +1,23 @@
 module
 
-public import WordRAM
+public import WordRAM.Model
+public import WordRAM.Contract
+public import WordRAM.Exec
+public import WordRAM.Expr
+public import WordRAM.Memory
+public import WordRAM.Logic
+public import WordRAM.Layout
+public import WordRAM.CopyWords
+public import WordRAM.Entry
+public import WordRAM.Tactic
+public import WordRAM.DataStructure
+public import WordRAM.LinkDefs
+public import WordRAM.Link
+public import WordRAM.Coins
+public import WordRAM.CoinsFresh
+public import WordRAM.ProbRuns
+public import WordRAM.Prob
+public import WordRAM.ProbBridge
 
 /-!
 # Loops with an amortized cost

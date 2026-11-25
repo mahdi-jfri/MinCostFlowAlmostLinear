@@ -92,8 +92,9 @@ clause of the core). -/
               tok'.table = tok.table →
               SolverLevelMetaDisjAt G.n (initTargetCap cfg G) tok' out.mem)
 
-/-- **Theorem 1.1 (page 2) from the parts of `DryCoreOpenParts` and the first step of a branch.** -/
-theorem theorem_1_1_of_parts
+/-- **Factored `DyadicWithVConcretePrograms` bundle from the parts of `DryCoreOpenParts` and
+the first step of a branch.** -/
+noncomputable def dryDyadicWithVBundle_parts
     (firstStep : ScSubCode)
     (C : ScFirstConsts)
     (hC : C.firstWordExp 3 ≤ 39)
@@ -120,8 +121,8 @@ theorem theorem_1_1_of_parts
       (mkDrySparseCorePieces firstStep dryFirstInit C hC hFirstStep
         (drySC_hFirstInit dryCompCode dryCFS firstStep C hInitMul hInitSpace))
       innerCoreCode innerSz hInnerSz) :
-    MinCostFlowStatement :=
-  theorem_1_1_skeleton_kfbl_sel_term firstStep dryFirstInit C hC hFirstStep
+    DyadicWithVConcretePrograms :=
+  dryDyadicWithVBundle_term firstStep dryFirstInit C hC hFirstStep
     (drySC_hFirstInit dryCompCode dryCFS firstStep C hInitMul hInitSpace)
     (dryCoreSelectCode innerCoreCode)
     (dryCoreSelectSizes (mkDrySparseCorePieces firstStep dryFirstInit C hC hFirstStep

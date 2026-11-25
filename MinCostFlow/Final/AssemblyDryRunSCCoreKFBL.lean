@@ -714,19 +714,6 @@ theorem drySC_coreKFBL (Psc : DrySparseCorePieces) (inner : SolverInnerCode)
   (drySC_coreKFRBL Psc inner allocationCoefficient allocationDegree source J hJn hJm hCapPos
     hw).toKFBL i hi G hGn_le hGm
 
-/-- **Theorem 1.1 (page 2), second dry run with the proved parameter setup, fits, last level and
-sparse-core contract at Init.**
-Derives `MinCostFlowStatement` from the sparse-core pieces (`DrySparseCorePieces`), the inner
-procedures other than the parameter setup (`SolverInnerOpenNoParam`), the other Init hypotheses
-(`DrySCInitOpenHyps`), and the inner specs (`DrySCSolverHyps`), by `theorem_1_1_dry_run_sc`. -/
-theorem theorem_1_1_dry_run_sc_open (Psc : DrySparseCorePieces)
-    (rem : SolverInnerOpenNoParam) (hrem : rem.IsDeterministic)
-    (B : OrdSolverInnerBounds) (hB : InnerBoundsHyp B)
-    (sz : Circulation → Circulation → WiredInnerSizes)
-    (hOpen : DrySCInitOpenHyps Psc rem B hB sz)
-    (hS : DrySCSolverHyps Psc rem.toSolverInnerOpen B hB sz) :
-    MinCostFlowStatement :=
-  theorem_1_1_dry_run_sc Psc rem.toSolverInnerOpen
-    (SolverInnerOpenNoParam.toSolverInnerOpen_isDeterministic hrem) B hB sz hOpen.toBridgeHyps hS
-
 end MinCostFlow.Final.DryRun
+
+end

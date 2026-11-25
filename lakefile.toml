@@ -15,7 +15,7 @@ rev = "b63f6e8a68d220e3b3bc4f3792bb53650d375f24"
 [[require]]
 name = "wordram"
 git = "https://github.com/mahdi-jfri/WordRam.git"
-rev = "68d5eb1ea45a4009221eccb80a05cad222551a59"
+rev = "5e0efa9b01c6788c00b4e14df334179bd9aa7013"
 
 [[lean_lib]]
 name = "MinCostFlow"

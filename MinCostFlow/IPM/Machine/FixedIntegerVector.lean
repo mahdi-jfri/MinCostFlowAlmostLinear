@@ -50,7 +50,7 @@ def fixedIntegerVectorContract (w h : ℕ) (signed : Bool) : Contract :=
     (fun args mem => ∃ a m L P heap, args = [a,m,L,P,heap] ∧
       ∀ i < m,a+1+5*i < heap ∧
         (if signed then mem (a+5*i) else 0) < 2^w ∧ mem (a+1+5*i) < 2^w ∧
-        [if signed then mem (a+5*i) else 0,mem (a+1+5*i)]=encodeInt (stridedInteger signed mem a i) ∧
+        [if signed then mem (a+5*i) else 0,mem (a+1+5*i)]=encodeSignedPair (stridedInteger signed mem a i) ∧
         Num.Fits h L (stridedInteger signed mem a i) ∧
         Num.Fits h L (stridedInteger signed mem a i*(2:ℤ)^P))
     (fun args mem mem' => ∀ i < args.getD 1 0,
@@ -77,7 +77,7 @@ private theorem fixed_vector_loop (signed : Bool) {w h a m L P heap load write :
     (hspace : heap+4*(m*L) < 2^w) (hzero : ZeroFrom mem heap)
     (hsource : ∀ i < m,a+1+5*i < heap ∧
       (if signed then mem (a+5*i) else 0) < 2^w ∧ mem (a+1+5*i) < 2^w ∧
-      [if signed then mem (a+5*i) else 0,mem (a+1+5*i)]=encodeInt (stridedInteger signed mem a i) ∧
+      [if signed then mem (a+5*i) else 0,mem (a+1+5*i)]=encodeSignedPair (stridedInteger signed mem a i) ∧
       Num.Fits h L (stridedInteger signed mem a i) ∧
       Num.Fits h L (stridedInteger signed mem a i*(2:ℤ)^P))
     (hload : MeetsContract w p load (fixedIntegerBlockContract w h))

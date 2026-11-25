@@ -30,8 +30,13 @@ How the statement reads the words of the paper:
   the statement asks for a correct answer within the time bound for every `ω`.
 * The machine is the word RAM of `WordRAM/Model.lean`, with words of `wordSize c input` bits for
   a constant `c`: `c` times the number of bits of the largest number of the input or its length.
-  The paper's fixed-point numbers of `log^{O(1)} z` bits take `log^{O(1)} z` such words, and an
-  operation on them takes `log^{O(1)} z` steps.
+  The input `I.encode` starts with the number `k` of bits of `z` (`Instance.limbWidth`), and
+  writes every integer of the instance in base `2 ^ k`. For a well-formed instance its words are
+  less than `2z` and it has at most `2z` words, so the machine's words have `Θ(c·log z)` bits.
+  This is within the paper's `O(log^{O(1)} z)`. An integer of the instance with more than `k`
+  bits takes several words, and an operation on it takes a step for each word. The paper's
+  fixed-point numbers of `log^{O(1)} z` bits likewise take `log^{O(1)} z` words.
+* The answer writes its integers in base `2 ^ k` too, with the same `k`.
 * "Given a `m`-edge graph with integral vertex demands and edge capacities bounded by `U` in
   absolute value, and integral edge costs bounded by `C`": every well-formed instance
   (`Instance.IsValid`), with `U = Instance.maxCapacity` and `C = Instance.maxCost`, the least

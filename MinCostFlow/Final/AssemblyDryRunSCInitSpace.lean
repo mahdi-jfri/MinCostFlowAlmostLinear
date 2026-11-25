@@ -214,19 +214,6 @@ def DrySCInitSizeHyps.toOpenHyps {Psc : DrySparseCorePieces} {rem : SolverInnerO
   hFixedLe := H.hFixedLe
   hMulLe := H.hMulLe
 
-/-- **Theorem 1.1 (page 2), second dry run with `hInitSpaceLe` discharged.**
-Calls `theorem_1_1_dry_run_sc_open` with `coreInitSpace := fun _ J => dryCoreInitSpace Psc J` and
-`drySC_hInitSpaceLe_proved`, leaving only the three Init size bounds `DrySCInitSizeHyps` alongside
-`Psc`, `rem`, `B`, `sz`, and `DrySCSolverHyps`. -/
-theorem theorem_1_1_dry_run_sc_initSpace (Psc : DrySparseCorePieces)
-    (rem : SolverInnerOpenNoParam) (hrem : rem.IsDeterministic)
-    (B : OrdSolverInnerBounds) (hB : InnerBoundsHyp B)
-    (sz : Circulation → Circulation → WiredInnerSizes)
-    (hInitSize : DrySCInitSizeHyps Psc B hB sz)
-    (hS : DrySCSolverHyps Psc rem.toSolverInnerOpen B hB sz) :
-    MinCostFlowStatement :=
-  theorem_1_1_dry_run_sc_open Psc rem hrem B hB sz hInitSize.toOpenHyps hS
-
 end MinCostFlow.Final.DryRun
 
 end

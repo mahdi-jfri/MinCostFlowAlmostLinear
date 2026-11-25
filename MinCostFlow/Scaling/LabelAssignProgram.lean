@@ -133,9 +133,9 @@ theorem labelAssign_meetsContract {w b : ℕ} {p : Program}
   have hnMem := (solver_header_at J hat).1
   have hparent := hlabels (J.tail e)
   have hparentSign : mem (labels+2*(J.tail e).val) = if s.labels (J.tail e) < 0 then 1 else 0 := by
-    simpa only [encodeInt, List.getElem_cons_zero, Nat.add_zero] using hparent 0 (by change 0 < 2; decide)
+    simpa only [encodeSignedPair, List.getElem_cons_zero, Nat.add_zero] using hparent 0 (by change 0 < 2; decide)
   have hparentMag : mem (labels+2*(J.tail e).val+1) = (s.labels (J.tail e)).natAbs := by
-    simpa only [encodeInt, List.getElem_cons_succ, List.getElem_cons_zero] using hparent 1 (by change 1 < 2; decide)
+    simpa only [encodeSignedPair, List.getElem_cons_succ, List.getElem_cons_zero] using hparent 1 (by change 1 < 2; decide)
   have hheap : heap < 2 ^ w := by omega
   have hheap1 : heap+1 < 2 ^ w := by omega
   have hbase : base < 2 ^ w := by omega
@@ -191,11 +191,11 @@ theorem labelAssign_meetsContract {w b : ℕ} {p : Program}
     change next = heap+2 at hnext
     change (∀ x < heap, memS x = mem x) at hframeS
     change ZeroFrom memS next at hzeroS
-    change ListAt memS heap (encodeInt value) at hvalueS
+    change ListAt memS heap (encodeSignedPair value) at hvalueS
     have hsignMem : memS heap = if value < 0 then 1 else 0 := by
-      simpa only [encodeInt, List.getElem_cons_zero, Nat.add_zero] using hvalueS 0 (by change 0 < 2; decide)
+      simpa only [encodeSignedPair, List.getElem_cons_zero, Nat.add_zero] using hvalueS 0 (by change 0 < 2; decide)
     have hmagMem : memS (heap+1) = value.natAbs := by
-      simpa only [encodeInt, List.getElem_cons_succ, List.getElem_cons_zero] using hvalueS 1 (by change 1 < 2; decide)
+      simpa only [encodeSignedPair, List.getElem_cons_succ, List.getElem_cons_zero] using hvalueS 1 (by change 1 < 2; decide)
     have hnextWord : next < 2 ^ w := by omega
     have hlabelsS : SignedTableAt memS labels s.labels := hlabels.of_agree_below (by omega) hframeS
     have hseenS : BoolTableAt memS seen s.seen := hseen.of_agree_below (by omega) hframeS
@@ -204,7 +204,7 @@ theorem labelAssign_meetsContract {w b : ℕ} {p : Program}
     · exact ⟨_, _, _, rfl, hchild2⟩
     · intro _ memP posP hpostP
       obtain ⟨_, hpairP, hframeP⟩ := hpostP
-      change ListAt memP child (encodeInt value) at hpairP
+      change ListAt memP child (encodeSignedPair value) at hpairP
       change (∀ x, x < child ∨ child+2 ≤ x → memP x = memS x) at hframeP
       have hlabelsP : SignedTableAt memP labels (Function.update s.labels (J.head e) value) := by
         apply hlabelsS.update (J.head e) value (heap := heap) (by omega) hpairP

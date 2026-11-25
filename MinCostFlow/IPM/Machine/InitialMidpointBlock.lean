@@ -86,7 +86,7 @@ theorem initialMidpointBlock_meetsContract {w h b : ℕ} {p : Program}
   unfold initialMidpointBlockBody
   refine runs_seq_call_le hloadSpec (vs := [0,cap,L,heap]) (by eval_expr) ?_ ?_ ?_
   · wram_words
-  · exact ⟨⟨(cap : ℤ),L,heap,by simp [encodeInt]⟩,hzero,by change heap+2*L < 2^w; omega⟩
+  · exact ⟨⟨(cap : ℤ),L,heap,by simp [encodeSignedPair]⟩,hzero,by change heap+2*L < 2^w; omega⟩
   · intro v1 mem1 pos1 hp1
     obtain ⟨hv1,hlo1,hhi1,hframe1,hzero1,hvalid,hvalue⟩ := hp1
     change v1 = heap+2*L at hv1

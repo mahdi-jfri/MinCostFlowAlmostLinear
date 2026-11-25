@@ -555,12 +555,9 @@ theorem dryTermSelectCode_hTermSel
 
 /-! ## 4. Theorem 1.1 assembly theorem with `dryTermSelectCode` plugged in -/
 
-/-- **Unified Theorem 1.1 (page 2) assembly theorem with `dryTermSelectCode` and `hTermSel`
-discharged (alongside `dryDeepSelectCode` and `hDeepSel`).** Instantiates
-`theorem_1_1_skeleton_kfbl_sel` with `termCode := dryTermSelectCode` and
-`hTermSel := dryTermSelectCode_hTermSel ...`, leaving only the sparse-core first-phase pieces and
-`hInitSel`, `hCoreSel`. -/
-theorem theorem_1_1_skeleton_kfbl_sel_term
+/-- **Factored `DyadicWithVConcretePrograms` bundle with `dryTermSelectCode` and `hTermSel`
+discharged.** -/
+noncomputable def dryDyadicWithVBundle_term
     (firstStep firstInit : ScSubCode)
     (C : ScFirstConsts)
     (hC : C.firstWordExp 3 ≤ 39)
@@ -625,12 +622,13 @@ theorem theorem_1_1_skeleton_kfbl_sel_term
           4 2 (selSz.keyCost source J) (dryLastStretchP J) (drySlot I.m) cfg G (dryPot J)
           (DryChainLenGridInv J) Rcore p (dryTailLay Psc.sc inner).ordChainCore
           s.coreSpace s.coreFixed s.toolMul s.treeMul) :
-    MinCostFlowStatement := by
+    DyadicWithVConcretePrograms :=
   let Psc := mkDrySparseCorePieces firstStep firstInit C hC hFirstStep hFirstInit
-  let openSz := coreSz.toDryOpenSizes; let hOpen := hCore.toDryOpenSizeBounds
+  let openSz := coreSz.toDryOpenSizes
+  let hOpen := hCore.toDryOpenSizeBounds
   let selSz := mkDrySelectRebuildSizes (dryInitSelectSizes Psc) (dryShiftSelectSizes Psc)
   let hSel := mkDrySelectRebuildSizeBounds (dryInitSelectSizeBounds Psc) (dryShiftSelectSizeBounds Psc)
-  exact theorem_1_1_skeleton_kfbl_sel firstStep firstInit C hC hFirstStep hFirstInit
+  dryDyadicWithVBundle_sel firstStep firstInit C hC hFirstStep hFirstInit
     coreCode dryTermSelectCode coreSz hCore hCoreSel
     (dryTermSelectCode_hTermSel Psc (dryInitCode (dryParamCode Psc)) coreCode drySelectRouteCode
       dryDeepSelectCode drySelInitCode openSz hOpen selSz hSel (fun _ J => dryPot J)

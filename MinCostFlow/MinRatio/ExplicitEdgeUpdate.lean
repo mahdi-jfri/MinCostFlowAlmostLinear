@@ -34,7 +34,7 @@ multiplier address, limb count, and heap. -/
     ∃ base edge a L heap, args = [base, edges.length, e, edge, a, L, heap] ∧
       ExplicitEdgesAt mem base edges ∧ base + 2 * edges.length ≤ heap ∧
       (offTreeCountUpdateContract w h value num net).pre
-        (edge :: a :: (encodeInt net ++ [L, heap])) mem ∧
+        (edge :: a :: (encodeSignedPair net ++ [L, heap])) mem ∧
       heap + (17 * L + 3) < 2 ^ w
   post args mem ret mem' :=
     let edge := args.getD 3 0
@@ -66,10 +66,10 @@ theorem explicitEdgeUpdate_meetsContract {w h entry count update : ℕ} {p : Pro
   obtain ⟨base, edge, a, L, heap, rfl, hr, hb, hupdate, hroom⟩ := hpre
   let net := (edges.count (e, true) : ℤ) - (edges.count (e, false) : ℤ)
   change (offTreeCountUpdateContract w h value num net).pre
-    (edge :: a :: (encodeInt net ++ [L, heap])) mem at hupdate
+    (edge :: a :: (encodeSignedPair net ++ [L, heap])) mem at hupdate
   obtain ⟨edge', a', L', heap', heq, hw, her, hv, ha, hn, hcfit, hprod, habs, hf, hd, hz, _⟩ := hupdate
   obtain ⟨rfl, rfl, rfl, rfl⟩ : edge = edge' ∧ a = a' ∧ L = L' ∧ heap = heap' := by
-    simpa only [encodeInt, List.cons_append, List.nil_append, List.cons.injEq, true_and, and_true] using heq
+    simpa only [encodeSignedPair, List.cons_append, List.nil_append, List.cons.injEq, true_and, and_true] using heq
   have hbase := hwords base (by simp)
   have hlen := hwords edges.length (by simp)
   have he := hwords e (by simp)
@@ -86,11 +86,11 @@ theorem explicitEdgeUpdate_meetsContract {w h entry count update : ℕ} {p : Pro
   · intro ptr mem₁ pos₁ hpost
     obtain ⟨hptr, henc, hframe⟩ := hpost
     change ptr = heap + 2 at hptr
-    change ListAt mem₁ heap (encodeInt net) at henc
+    change ListAt mem₁ heap (encodeSignedPair net) at henc
     change ∀ x, x < heap ∨ heap + 2 ≤ x → mem₁ x = mem x at hframe
     let sign : ℕ := if net < 0 then 1 else 0
-    have hsign : mem₁ heap = sign := henc 0 (by simp [encodeInt])
-    have hmag : mem₁ (heap + 1) = net.natAbs := henc 1 (by simp [encodeInt])
+    have hsign : mem₁ heap = sign := henc 0 (by simp [encodeSignedPair])
+    have hmag : mem₁ (heap + 1) = net.natAbs := henc 1 (by simp [encodeSignedPair])
     have hsw : sign < 2 ^ w := by dsimp [sign]; split <;> omega
     have hmw : net.natAbs < 2 ^ w := by
       have hf' := List.count_le_length (l := edges) (a := (e, true))

@@ -250,24 +250,7 @@ theorem ForestConcretePrograms.workspace_le (P : ForestConcretePrograms) (n m : 
     forestConnectedSolverRuntimeWorkspace P.runtimeResources n m ≤ (n + m + 2) ^ P.scratchDegree :=
   P.toBase.workspace_le n m
 
-def ForestConcretePrograms.program (P : ForestConcretePrograms) : Program := P.toBase.program
-
-theorem ForestConcretePrograms.program_deterministic (P : ForestConcretePrograms) :
-    P.program.IsDeterministic := P.toBase.program_deterministic
-
 def ForestConcretePrograms.timeConstant (P : ForestConcretePrograms) : ℕ := P.toBase.timeConstant
-
-/-- The outer scaling program runs on arbitrary valid instances and obeys the counted scaling bound. -/
-theorem ForestConcretePrograms.program_runsTo (P : ForestConcretePrograms)
-    (I : Instance) (hv : I.IsValid) (ω : ℕ → Bool) :
-    ∃ out cost,
-      RunsTo (wordSize (scratchOuterMultiplier 1 P.scratchDegree) I.encode) P.program I.encode ω out cost ∧
-      I.IsCorrectAnswer out ∧
-      cost ≤ P.timeConstant * (Nat.clog 2 (I.m + 1) + 1) *
-        (Nat.clog 2 (I.m + 1) + Nat.clog 2 (I.maxCapacity + 1) + 1) * Nat.clog 2 (I.maxCost + 2) *
-        (linkedForestSolverTime P.runtimeResources (P.timeConstant * min I.n I.m) (P.timeConstant * I.m) + I.m) +
-        P.timeConstant * I.n :=
-  P.toBase.program_runsTo_of P.solver_meetsContract I hv ω
 
 def DyadicForestConcretePrograms.qualityBudget (P : DyadicForestConcretePrograms) : ℕ := P.toBase.qualityBudget
 def DyadicForestConcretePrograms.edgeThreshold (P : DyadicForestConcretePrograms) : ℕ := P.toBase.edgeThreshold
@@ -301,23 +284,7 @@ theorem DyadicForestConcretePrograms.workspace_le (P : DyadicForestConcreteProgr
     forestConnectedSolverRuntimeWorkspace P.runtimeResources n m ≤ (n + m + 2) ^ P.scratchDegree :=
   P.toBase.workspace_le n m
 
-def DyadicForestConcretePrograms.program (P : DyadicForestConcretePrograms) : Program := P.toBase.program
-
-theorem DyadicForestConcretePrograms.program_deterministic (P : DyadicForestConcretePrograms) :
-    P.program.IsDeterministic := P.toBase.program_deterministic
-
 def DyadicForestConcretePrograms.timeConstant (P : DyadicForestConcretePrograms) : ℕ := P.toBase.timeConstant
-
-theorem DyadicForestConcretePrograms.program_runsTo (P : DyadicForestConcretePrograms)
-    (I : Instance) (hv : I.IsValid) (ω : ℕ → Bool) :
-    ∃ out cost,
-      RunsTo (wordSize (scratchOuterMultiplier 1 P.scratchDegree) I.encode) P.program I.encode ω out cost ∧
-      I.IsCorrectAnswer out ∧
-      cost ≤ P.timeConstant * (Nat.clog 2 (I.m + 1) + 1) *
-        (Nat.clog 2 (I.m + 1) + Nat.clog 2 (I.maxCapacity + 1) + 1) * Nat.clog 2 (I.maxCost + 2) *
-        (linkedForestSolverTime P.runtimeResources (P.timeConstant * min I.n I.m) (P.timeConstant * I.m) + I.m) +
-        P.timeConstant * I.n :=
-  P.toBase.program_runsTo_of P.solver_meetsContract I hv ω
 
 def DyadicWithVConcretePrograms.qualityBudget (P : DyadicWithVConcretePrograms) : ℕ :=
   concreteQualityBudgetWithLast P.witness
@@ -378,22 +345,6 @@ theorem DyadicWithVConcretePrograms.workspace_le (P : DyadicWithVConcreteProgram
     forestConnectedSolverRuntimeWorkspace P.runtimeResources n m ≤ (n + m + 2) ^ P.scratchDegree :=
   P.toCore.workspace_le n m
 
-def DyadicWithVConcretePrograms.program (P : DyadicWithVConcretePrograms) : Program := P.toCore.program
-
-theorem DyadicWithVConcretePrograms.program_deterministic (P : DyadicWithVConcretePrograms) :
-    P.program.IsDeterministic := P.toCore.program_deterministic
-
 def DyadicWithVConcretePrograms.timeConstant (P : DyadicWithVConcretePrograms) : ℕ := P.toCore.timeConstant
-
-theorem DyadicWithVConcretePrograms.program_runsTo (P : DyadicWithVConcretePrograms)
-    (I : Instance) (hv : I.IsValid) (ω : ℕ → Bool) :
-    ∃ out cost,
-      RunsTo (wordSize (scratchOuterMultiplier 1 P.scratchDegree) I.encode) P.program I.encode ω out cost ∧
-      I.IsCorrectAnswer out ∧
-      cost ≤ P.timeConstant * (Nat.clog 2 (I.m + 1) + 1) *
-        (Nat.clog 2 (I.m + 1) + Nat.clog 2 (I.maxCapacity + 1) + 1) * Nat.clog 2 (I.maxCost + 2) *
-        (linkedForestSolverTime P.runtimeResources (P.timeConstant * min I.n I.m) (P.timeConstant * I.m) + I.m) +
-        P.timeConstant * I.n :=
-  P.toCore.program_runsTo_of P.solver_meetsContract I hv ω
 
 end MinCostFlow.Final

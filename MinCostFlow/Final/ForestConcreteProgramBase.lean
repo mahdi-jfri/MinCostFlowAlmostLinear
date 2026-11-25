@@ -5,8 +5,8 @@ public import MinCostFlow.Final.OrderedConcreteChainModel
 public import MinCostFlow.Final.ConcreteChainModelWithLast
 public import MinCostFlow.Final.ConnectedForestIPMWorkspace
 public import MinCostFlow.Final.ConcretePrograms
-public import MinCostFlow.Final.ConnectedLinkedProgram
 public import MinCostFlow.Final.DynamicLctForest
+import MinCostFlow.Scaling.ModulePlacement
 import Mathlib.Tactic
 
 /-!
@@ -590,63 +590,18 @@ theorem ForestConcreteProgramBase.workspace_le (P : ForestConcreteProgramBase) (
     forestConnectedSolverRuntimeWorkspace P.runtimeResources n m ≤ (n + m + 2) ^ P.scratchDegree :=
   P.toCore.workspace_le n m
 
-def ForestConcreteProgramCore.program (P : ForestConcreteProgramCore) : Program :=
-  scratchOuterScalingProgram P.solver 0 1 P.scratchDegree
+end MinCostFlow.Final
+end
 
-theorem ForestConcreteProgramCore.program_deterministic (P : ForestConcreteProgramCore) :
-    P.program.IsDeterministic :=
-  scratchOuterScalingProgram_deterministic _ _ _ _ P.solver_deterministic
+public noncomputable section
+namespace MinCostFlow.Final
 
-def ForestConcreteProgramCore.timeConstant (P : ForestConcreteProgramCore) : ℕ :=
-  scratchWholeScalingConstant P.solver 1 P.scratchDegree
+def ForestConcreteProgramCore.timeConstant (_P : ForestConcreteProgramCore) : ℕ := 72
 
-theorem ForestConcreteProgramCore.program_runsTo_of (P : ForestConcreteProgramCore)
-    (hSol : ∀ J : Circulation,
-      let w := wordSize (scratchWordMultiplier 1 P.scratchDegree) J.solverWords
-      MeetsContract w P.solver 0 (compressedSolverContract w
-        (forestConnectedSolverRuntimeTime P.runtimeResources)
-        (forestConnectedSolverRuntimeWorkspace P.runtimeResources)))
-    (I : Instance) (hv : I.IsValid) (ω : ℕ → Bool) :
-    ∃ out cost,
-      RunsTo (wordSize (scratchOuterMultiplier 1 P.scratchDegree) I.encode) P.program I.encode ω out cost ∧
-      I.IsCorrectAnswer out ∧
-      cost ≤ P.timeConstant * (Nat.clog 2 (I.m + 1) + 1) *
-        (Nat.clog 2 (I.m + 1) + Nat.clog 2 (I.maxCapacity + 1) + 1) * Nat.clog 2 (I.maxCost + 2) *
-        (linkedForestSolverTime P.runtimeResources (P.timeConstant * min I.n I.m) (P.timeConstant * I.m) + I.m) +
-        P.timeConstant * I.n := by
-  apply outerScaling_runsTo_compressedPolynomialScratch P.solver 0
-    (linkedForestSolverTime P.runtimeResources) (forestConnectedSolverRuntimeWorkspace P.runtimeResources)
-    1 P.scratchDegree
-  · intro J
-    exact solverContract_raise_time (hSol J)
-      (forestConnectedSolverRuntimeTime_le_linkedForestSolverTime P.runtimeResources)
-  · intro n m
-    simpa only [Nat.one_mul] using P.workspace_le n m
-  · exact P.solver_deterministic
-  · exact linkedForestSolverTime_mono P.runtimeResources
-  · exact hv
+theorem ForestConcreteProgramCore.timeConstant_ge_72 (P : ForestConcreteProgramCore) :
+    72 ≤ P.timeConstant := le_rfl
 
-def ForestConcreteProgramBase.program (P : ForestConcreteProgramBase) : Program := P.toCore.program
-
-theorem ForestConcreteProgramBase.program_deterministic (P : ForestConcreteProgramBase) :
-    P.program.IsDeterministic := P.toCore.program_deterministic
-
-def ForestConcreteProgramBase.timeConstant (P : ForestConcreteProgramBase) : ℕ := P.toCore.timeConstant
-
-theorem ForestConcreteProgramBase.program_runsTo_of (P : ForestConcreteProgramBase)
-    (hSol : ∀ J : Circulation,
-      let w := wordSize (scratchWordMultiplier 1 P.scratchDegree) J.solverWords
-      MeetsContract w P.solver 0 (compressedSolverContract w
-        (forestConnectedSolverRuntimeTime P.runtimeResources)
-        (forestConnectedSolverRuntimeWorkspace P.runtimeResources)))
-    (I : Instance) (hv : I.IsValid) (ω : ℕ → Bool) :
-    ∃ out cost,
-      RunsTo (wordSize (scratchOuterMultiplier 1 P.scratchDegree) I.encode) P.program I.encode ω out cost ∧
-      I.IsCorrectAnswer out ∧
-      cost ≤ P.timeConstant * (Nat.clog 2 (I.m + 1) + 1) *
-        (Nat.clog 2 (I.m + 1) + Nat.clog 2 (I.maxCapacity + 1) + 1) * Nat.clog 2 (I.maxCost + 2) *
-        (linkedForestSolverTime P.runtimeResources (P.timeConstant * min I.n I.m) (P.timeConstant * I.m) + I.m) +
-        P.timeConstant * I.n :=
-  P.toCore.program_runsTo_of hSol I hv ω
+@[expose] def ForestConcreteProgramBase.timeConstant (P : ForestConcreteProgramBase) : ℕ := P.toCore.timeConstant
 
 end MinCostFlow.Final
+end

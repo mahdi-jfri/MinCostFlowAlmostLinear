@@ -27,7 +27,7 @@ open WordRAM
 
 /-- The tag starts after the scaling workspace and uses two limb blocks. -/
 @[expose] def offTreeTagContract (w h : ℕ) (num count : ℤ) : Contract where
-  pre args mem := ∃ a L heap, args = a :: (encodeInt count ++ [L, heap]) ∧
+  pre args mem := ∃ a L heap, args = a :: (encodeSignedPair count ++ [L, heap]) ∧
     a + L ≤ heap ∧ PathIntAt mem a h L num ∧ Num.Fits h L count ∧
     Num.Fits h L (num * count) ∧ Num.Fits h L |num * count| ∧
     ZeroFrom mem heap ∧ heap + (15 * L + 1) < 2 ^ w
@@ -82,7 +82,7 @@ theorem offTreeTag_meetsContract {w h entry scale tag : ℕ} {p : Program}
           PathTagAt mem₂ (heap + (13 * L + 1)) h L (PathTag.ofFlow (num * count)) ∧
           (∀ x < heap, mem₂ x = mem x) ∧ ZeroFrom mem₂ ret
         exact ⟨by omega, hptr ▸ htag, fun x hx => (hframe₂ x (by omega)).trans (hframe x hx), hz₂⟩
-      · simp only [offTreeTagContract, offTreeScaleContract, pathFlowTagContract, encodeInt,
+      · simp only [offTreeTagContract, offTreeScaleContract, pathFlowTagContract, encodeSignedPair,
           List.cons_append, List.nil_append, List.getD_cons_zero, List.getD_cons_succ,
           Expr.size_bin, Expr.size_reg, argsSize_cons, argsSize_nil]
         omega
@@ -97,7 +97,7 @@ theorem offTreeTag_meetsContract {w h entry scale tag : ℕ} {p : Program}
 below the incoming heap. -/
 @[expose] def offTreeCountUpdateContract (w h : ℕ) (value : PathEdgeValue)
     (num count : ℤ) : Contract where
-  pre args mem := ∃ edge a L heap, args = edge :: a :: (encodeInt count ++ [L, heap]) ∧
+  pre args mem := ∃ edge a L heap, args = edge :: a :: (encodeSignedPair count ++ [L, heap]) ∧
     2 < 2 ^ w ∧ edge + 2 + 4 * L ≤ heap ∧ PathEdgeAt mem edge h L (some value) ∧
     a + L ≤ heap ∧ PathIntAt mem a h L num ∧ Num.Fits h L count ∧
     Num.Fits h L (num * count) ∧ Num.Fits h L |num * count| ∧
@@ -165,7 +165,7 @@ theorem offTreeCountUpdate_meetsContract {w h entry tag flow : ℕ} {p : Program
           ZeroFrom mem₂ ret
         exact ⟨by omega, hv₂,
           fun x hx hout => (hframe₂ x (by omega) hout).trans (hframe x hx), hz₂⟩
-      · simp only [offTreeCountUpdateContract, offTreeTagContract, offTreeFlowContract, encodeInt,
+      · simp only [offTreeCountUpdateContract, offTreeTagContract, offTreeFlowContract, encodeSignedPair,
           List.cons_append, List.nil_append, List.getD_cons_zero, List.getD_cons_succ,
           Expr.size_bin, Expr.size_reg, Expr.size_const, argsSize_cons, argsSize_nil]
         omega

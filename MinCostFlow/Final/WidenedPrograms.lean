@@ -1,7 +1,8 @@
 module
 
 public import MinCostFlow.Final.IPMWorkspace
-public import MinCostFlow.Final.OuterScalingRunsTo
+public import MinCostFlow.Final.Scratch
+public import WordRAM.Entry
 public import MinCostFlow.IPM.Machine.BoundedSolver
 public import MinCostFlow.Final.ChainToolBounds
 import MinCostFlow.Num.ModulePlacement

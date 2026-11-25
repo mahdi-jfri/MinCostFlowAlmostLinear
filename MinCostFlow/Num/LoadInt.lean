@@ -3,6 +3,7 @@ module
 public import MinCostFlow.Num.LoadSmall
 public import MinCostFlow.Num.Negate
 public import MinCostFlow.Num.Copy
+public import MinCostFlow.Num.SignedPair
 public import MinCostFlow.Statement.Problem
 import WordRAM.Tactic
 import WordRAM.Memory
@@ -10,7 +11,7 @@ import WordRAM.Memory
 /-!
 # Loading an integer written as two words
 
-`encodeInt` stores a sign word and an absolute value. The loader takes these two words,
+`encodeSignedPair` stores a sign word and an absolute value. The loader takes these two words,
 the requested limb count, and the heap pointer as arguments. It first loads the magnitude
 into an `L`-limb scratch block. It then negates or copies that block into the next `L`
 cells. The result starts at `heap + L`, and the returned pointer is `heap + 2*L`.
@@ -21,7 +22,7 @@ Overflow wraps modulo the block capacity. The cost is at most `59*L + 34`.
 namespace MinCostFlow.Num
 open WordRAM
 
-/-- Decode a sign word and an absolute value. Canonical inputs are supplied by `encodeInt`. -/
+/-- Decode a sign word and an absolute value. Canonical inputs are supplied by `encodeSignedPair`. -/
 def decodeIntWords (sign magnitude : ℕ) : ℤ :=
   if sign = 0 then (magnitude : ℤ) else -(magnitude : ℤ)
 
@@ -48,11 +49,11 @@ def loadIntModule (b h : ℕ) : List Stmt :=
   [loadIntBody (b + 1) (b + 2) (b + 4), loadSmallBody (b + 1) h] ++
     negateModule (b + 2) h ++ [copyBody]
 
-/-- Load canonical `encodeInt` words. The scratch block starts at the old heap,
+/-- Load canonical `encodeSignedPair` words. The scratch block starts at the old heap,
 and the signed result starts `L` cells later. -/
 def loadIntContract (w h : ℕ) : Contract :=
   let C := heapContract w
-    (fun args _ => ∃ n : ℤ, ∃ L heap, args = encodeInt n ++ [L, heap])
+    (fun args _ => ∃ n : ℤ, ∃ L heap, args = encodeSignedPair n ++ [L, heap])
     (fun args _ mem' =>
       Valid mem' (heapArg args + args.getD 2 0) h (args.getD 2 0) ∧
       intVal mem' (heapArg args + args.getD 2 0) h (args.getD 2 0) =
@@ -120,7 +121,7 @@ theorem loadInt_meetsContract {w h b : ℕ} {p : Program}
     · intro hsign
       have hnegative : n < 0 := by
         by_contra he
-        simp [he, encodeInt] at hsign
+        simp [he, encodeSignedPair] at hsign
       refine runs_seq_call_le hn (vs := [heap, L, v₁]) (by eval_expr) (by wram_words) ?_ ?_
       · refine ⟨heap, L, v₁, rfl, ?_⟩
         exact ⟨⟨heap, L, 1, v₁, rfl, by omega, le_rfl, hv.1⟩, hz₁,
@@ -143,13 +144,13 @@ theorem loadInt_meetsContract {w h b : ℕ} {p : Program}
           · rw [← he₁, hout.2, hv.2.2, ← wrap_natCast, wrap_neg_wrap]
             simp only [decodeIntWords, ite_eq_left hnegative, Nat.one_ne_zero, ↓reduceIte]
         · simp only [loadIntContract, loadSmallContract, negateContract, negateCarryContract,
-            heapContract, encodeInt, List.cons_append, List.nil_append,
+            heapContract, encodeSignedPair, List.cons_append, List.nil_append,
             List.getD_cons_zero, List.getD_cons_succ, Expr.size_reg, argsSize_cons, argsSize_nil]
           omega
     · intro hsign
       have hnonnegative : ¬ n < 0 := by
         intro he
-        simp [he, encodeInt] at hsign
+        simp [he, encodeSignedPair] at hsign
       refine runs_seq_call_le hc (vs := [heap, L, v₁]) (by eval_expr) (by wram_words) ?_ ?_
       · exact ⟨⟨heap, L, v₁, rfl, by omega, hv.1⟩, hz₁,
           by change v₁ + L < 2 ^ w; omega⟩
@@ -171,13 +172,13 @@ theorem loadInt_meetsContract {w h b : ℕ} {p : Program}
           · rw [← he₁, hvalue, hv.2.2]
             simp only [decodeIntWords, ite_eq_right hnonnegative, ↓reduceIte, wrap_natCast]
         · simp only [loadIntContract, loadSmallContract, copyContract,
-            heapContract, encodeInt, List.cons_append, List.nil_append,
+            heapContract, encodeSignedPair, List.cons_append, List.nil_append,
             List.getD_cons_zero, List.getD_cons_succ, Expr.size_reg, argsSize_cons, argsSize_nil]
           omega
 
 /-- The canonical input words yield the wrapped input integer. -/
 theorem loadInt_value {w h L heap v : ℕ} {n : ℤ} {mem mem' : ℕ → ℕ}
-    (hp : (loadIntContract w h).post (encodeInt n ++ [L, heap]) mem v mem') :
+    (hp : (loadIntContract w h).post (encodeSignedPair n ++ [L, heap]) mem v mem') :
     intVal mem' (heap + L) h L = wrap h L n := by
   have he := hp.2.2.2.2.2.2
   change intVal mem' (heap + L) h L =
@@ -186,7 +187,7 @@ theorem loadInt_value {w h L heap v : ℕ} {n : ℤ} {mem mem' : ℕ → ℕ}
 
 /-- When the input fits, loading its canonical words is exact. -/
 theorem loadInt_value_of_fits {w h L heap v : ℕ} {n : ℤ} {mem mem' : ℕ → ℕ}
-    (hp : (loadIntContract w h).post (encodeInt n ++ [L, heap]) mem v mem')
+    (hp : (loadIntContract w h).post (encodeSignedPair n ++ [L, heap]) mem v mem')
     (hn : Fits h L n) : intVal mem' (heap + L) h L = n := by
   rw [loadInt_value hp, wrap_of_fits hn]
 

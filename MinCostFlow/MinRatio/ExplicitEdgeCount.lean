@@ -2,6 +2,7 @@ module
 
 public import MinCostFlow.MinRatio.ExplicitEdgeLayout
 public import WordRAM.Logic
+public import MinCostFlow.Num.SignedPair
 public import MinCostFlow.Statement.Problem
 import WordRAM.Tactic
 
@@ -137,14 +138,14 @@ theorem explicitEdgeCount_meetsContract {w entry : ℕ} {p : Program}
 /-- Comparing the two directional counts gives the sign and lets
 word subtraction compute the magnitude without underflow. -/
 theorem encodeInt_of_directional_counts (forward backward : ℕ) :
-    encodeInt ((forward : ℤ) - (backward : ℤ)) =
+    encodeSignedPair ((forward : ℤ) - (backward : ℤ)) =
       if forward < backward then [1, backward - forward] else [0, forward - backward] := by
   by_cases hf : forward < backward
   · have hs : (forward : ℤ) - (backward : ℤ) < 0 := by omega
     have hm : ((forward : ℤ) - (backward : ℤ)).natAbs = backward - forward := by omega
-    simp [encodeInt, hf, hs, hm]
+    simp [encodeSignedPair, hf, hs, hm]
   · have hs : ¬ (forward : ℤ) - (backward : ℤ) < 0 := by omega
     have hm : ((forward : ℤ) - (backward : ℤ)).natAbs = forward - backward := by omega
-    simp [encodeInt, hf, hs, hm]
+    simp [encodeSignedPair, hf, hs, hm]
 
 end MinCostFlow.MinRatio

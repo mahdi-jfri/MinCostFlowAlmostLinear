@@ -3,7 +3,6 @@ module
 public import MinCostFlow.Final.AssemblyDryRunWitness
 public import MinCostFlow.Final.AssemblyDryRunSolver
 public import MinCostFlow.Final.SparsifyImplHyp
-public import MinCostFlow.Final.Theorem1_1
 public import MinCostFlow.SparseCore.Program.LSFWindowSpec
 import Mathlib.Tactic
 
@@ -289,51 +288,5 @@ def dryPrograms : DyadicWithVConcretePrograms where
 
 end Package
 
-/-- **Theorem 1.1 (page 2), dry run.** `MinCostFlowStatement` follows from the sparse-core uniform
-statement (`hSC`, with `hWordExp : drySparseCoreWordExp hSC 3 ≤ 39`), the six corrected inner `W`
-specs (`hInit`, `hCore`, `hSelect`, `hEval`, `hTerm`, `hDeep`), `hCapBounds`, and `hEnv`, through
-`ordSolver_implements_full_wired` and `theorem_1_1_of_dyadic_withV_mrds_programs`. Both
-`DrySparseCoreCapLevels` and `DrySparseCoreWordBound` are discharged automatically. -/
-theorem theorem_1_1_dry_run
-    (sc : SparseCoreCode) (hsc : sc.prog.IsDeterministic)
-    (hSC : SparseCoreOrdProgramUniform dryCLsstUsed dryLSFInitUsed sparsifyImplUsed
-      sc.prog sc.init sc.op)
-    (hWordExp : drySparseCoreWordExp hSC dryCapExp ≤ 39)
-    (inner : SolverInnerCode) (hinner : inner.IsDeterministic)
-    (B : OrdSolverInnerBounds) (hB : InnerBoundsHyp B)
-    (stretchPrec : Scaling.Circulation → ℕ)
-    (DeepInv : ∀ J, ChainState (concreteCirculationCfgWithLast dryWitnessUsed J).T
-      (concreteCirculationCfgWithLast dryWitnessUsed J).P → Prop)
-    (hDeepInv : DryDeepShiftInv dryWitnessUsed sparsifyImplUsed sc hSC
-      (dryAllocCoeffFull B hB) (dryAllocDeg B hB) dryCapExp
-      (concreteReadout2LimbMul dryWitnessUsed) stretchPrec DeepInv)
-    (sz : Scaling.Circulation → Scaling.Circulation → WiredInnerSizes)
-    (hInit : DryInitSpecW dryWitnessUsed sparsifyImplUsed rfl rfl rfl sc hSC inner
-      (dryAllocCoeffFull B hB) (dryAllocDeg B hB) dryCapExp
-      (concreteReadout2LimbMul dryWitnessUsed) sz)
-    (hCore : DryChainUpdateCoreSpecW dryWitnessUsed sparsifyImplUsed rfl rfl rfl sc hSC inner
-      (dryAllocCoeffFull B hB) (dryAllocDeg B hB) dryCapExp
-      (concreteReadout2LimbMul dryWitnessUsed) sz)
-    (hSelect : DryCycleRouteSelectSpecW dryWitnessUsed sparsifyImplUsed rfl rfl rfl sc hSC inner
-      (dryAllocCoeffFull B hB) (dryAllocDeg B hB) dryCapExp
-      (concreteReadout2LimbMul dryWitnessUsed) sz)
-    (hEval : DryCycleRouteEvalSpecW dryWitnessUsed sparsifyImplUsed rfl rfl rfl sc hSC inner
-      (dryAllocCoeffFull B hB) (dryAllocDeg B hB) dryCapExp
-      (concreteReadout2LimbMul dryWitnessUsed) sz)
-    (hTerm : DryShiftTermSpecW dryWitnessUsed sparsifyImplUsed rfl rfl rfl sc hSC inner
-      (dryAllocCoeffFull B hB) (dryAllocDeg B hB) dryCapExp
-      (concreteReadout2LimbMul dryWitnessUsed) sz)
-    (hDeep : DryShiftDeepSpecW dryWitnessUsed sparsifyImplUsed rfl rfl rfl sc hSC inner
-      (dryAllocCoeffFull B hB) (dryAllocDeg B hB) dryCapExp
-      (concreteReadout2LimbMul dryWitnessUsed) stretchPrec sz)
-    (hCapBounds : DryFixedPointCapBounds dryWitnessUsed (dryAllocCoeffFull B hB)
-      (dryAllocDeg B hB) sz)
-    (hEnv : DryContractEnvelope dryWitnessUsed sparsifyImplUsed rfl rfl rfl sc hSC
-      B.cycleRate B.cycleAllocation (dryAllocCoeffFull B hB) (dryAllocDeg B hB) dryCapExp
-      (concreteReadout2LimbMul dryWitnessUsed) sz) :
-    MinCostFlowStatement :=
-  theorem_1_1_of_dyadic_withV_mrds_programs
-    (dryPrograms sc hsc hSC hWordExp inner hinner B hB stretchPrec DeepInv hDeepInv sz
-      hInit hCore hSelect hEval hTerm hDeep hCapBounds hEnv)
 
 end MinCostFlow.Final.DryRun

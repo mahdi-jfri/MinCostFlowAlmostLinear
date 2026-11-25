@@ -5,7 +5,8 @@ public import MinCostFlow.Final.AssemblyDryRunSCDeepSelectProof
 public import MinCostFlow.Final.AssemblyDryRunSCInitDischarged
 public import MinCostFlow.Final.AssemblyDryRunSCSelInit
 public import MinCostFlow.Final.WireInitSelectSizes
-public import MinCostFlow.Final.Theorem11Skeleton
+public import MinCostFlow.Final.AssemblyDryRunSCEnvelope
+public import MinCostFlow.Final.AssemblyDryRunSCCompImpl
 public import MinCostFlow.MinRatio.WireSelectQueryProofs
 public import MinCostFlow.Num.IsZero
 public import MinCostFlow.Num.Less
@@ -525,19 +526,56 @@ theorem drySelectRouteCode_hSelectHeap_sel (Psc : DrySparseCorePieces)
         (Num.less_meetsContract (w := w) (h := 4) (by decide) hw1 hbase4 hLessAt))
       (pathSwapWords_meetsContract (w := w) hSwapAt))
 
-/-- **Unified Theorem 1.1 (page 2) assembly theorem on `solverStateRepSelKFBL` and `drySCRep`.**
-Assembles `Psc := mkDrySparseCorePieces firstStep firstInit C hC hFirstStep hFirstInit` (discharging
-P4 unconditionally via `dryCompCode`, `dryCFS`, `dryCF_hyp`), fixes `pot := dryPot` (`progReembPot`),
-uses `dryLinkedProgramSel` with `initCode := dryInitCode (dryParamCode Psc)`,
-`selectCode := drySelectRouteCode`, `deepCode := dryDeepSelectCode`,
-`selInitCode := drySelInitCode`, `initSel := dryInitSelectSizes Psc`, and
-`shiftSel := dryShiftSelectSizes Psc`, and routes through `drySolver_implements_sel`,
-unconditionally discharging P4, `DSRep.Implements`, `DryInitSelectSizeBounds`,
-`DryShiftSelectSizeBounds`, `hInitSel`, `hSelectHeap`, `hDeepSel`, `hEval`,
-`DryFixedPointCapBounds`, `DryEnvelopeIneqs`, `DeepShiftChainInvHyps`, `DrySparseCoreCapLevels`,
-and the embedding-length bound (leaving only the sparse-core first-phase pieces and `hCoreSel`,
-`hTermSel`). -/
-theorem theorem_1_1_skeleton_kfbl_sel
+/-- Assembles `DrySparseCorePieces` from the unpacked first-phase branch hypotheses, instantiating
+P4 unconditionally via `dryCompCode`, `dryCFS`, and `dryCF_hyp`. -/
+noncomputable def mkDrySparseCorePieces
+    (firstStep firstInit : ScSubCode)
+    (C : ScFirstConsts)
+    (hC : C.firstWordExp 3 ≤ 39)
+    (hFirstStep :
+      let L := scLayout sparsifyImplUsed dryCompCode firstStep firstInit
+      let p := scProg sparsifyImplUsed dryCompCode firstStep firstInit
+      ∀ depth : ℕ, 1 ≤ depth →
+        ∀ (capExp limbMul w : ℕ) (fmt : Num.Format w) (L_in : ℕ)
+          (CF : AsmCompFamilyAt dryCFS (dryLSFInitUsed L_in fmt.precision) w fmt L_in capExp limbMul
+            p dryCompCode.fInit dryCompCode.fBatch),
+          fmt.precision ≤ 4 * L_in → CF.fRoot = dryCompCode.fRoot →
+          ∃ JS : AsmBrCoreStepAt
+              (asmTourRepWithPot tourAsmRep (bundleScanPotMul tourBundleSpec)) scProgB5
+              sparsifyImplUsed depth fmt.precision L_in capExp limbMul
+              (asmBrWordExp C.toAsmBrConsts capExp) w walkPot p L.I.fCoreS,
+            JS.mul = C.stepMul capExp limbMul ∧
+            JS.ysMul = C.stepYs capExp limbMul ∧
+            JS.spaceP = C.stepSpace capExp)
+    (hFirstInit :
+      let L := scLayout sparsifyImplUsed dryCompCode firstStep firstInit
+      let p := scProg sparsifyImplUsed dryCompCode firstStep firstInit
+      ∀ depth : ℕ, 1 ≤ depth →
+        ∀ (capExp limbMul w : ℕ) (fmt : Num.Format w) (L_in : ℕ)
+          (CF : AsmCompFamilyAt dryCFS (dryLSFInitUsed L_in fmt.precision) w fmt L_in capExp limbMul
+            p dryCompCode.fInit dryCompCode.fBatch),
+          fmt.precision ≤ 4 * L_in → CF.fRoot = dryCompCode.fRoot →
+          ∃ JI : AsmBrCoreInitAt
+              (asmTourRepWithPot tourAsmRep (bundleScanPotMul tourBundleSpec)) scProgB5 CF.rep
+              (dryLSFInitUsed L_in fmt.precision) sparsifyImplUsed depth fmt.precision L_in capExp
+              limbMul (asmBrWordExp C.toAsmBrConsts capExp) w walkPot p L.I.fCoreI,
+            JI.mul = C.initMul capExp limbMul ∧
+            JI.space = C.initSpace capExp) :
+    DrySparseCorePieces where
+  cf := dryCompCode
+  firstStep := firstStep
+  firstInit := firstInit
+  CFS := dryCFS
+  hCF := dryCF_hyp
+  hBR := ⟨⟨C, hC, fun depth hdepth capExp limbMul w fmt L_in CF hPL hfRoot =>
+    ⟨hFirstStep depth hdepth capExp limbMul w fmt L_in CF hPL hfRoot,
+     hFirstInit depth hdepth capExp limbMul w fmt L_in CF hPL hfRoot⟩⟩⟩
+
+
+/-- **Factored `DyadicWithVConcretePrograms` bundle on `solverStateRepSelKFBL` and `drySCRep`.**
+Produces the concrete solver bundle used by both `theorem_1_1_skeleton_kfbl_sel` (old statement)
+and `narrowStatement_of_dyadic_withV` (narrow-word statement). -/
+noncomputable def dryDyadicWithVBundle_sel
     (firstStep firstInit : ScSubCode)
     (C : ScFirstConsts)
     (hC : C.firstWordExp 3 ≤ 39)
@@ -634,9 +672,10 @@ theorem theorem_1_1_skeleton_kfbl_sel
           (dryLastStretchP J) (drySlot I.m) cfg G (dryPot J)
           (DryChainLenGridInv J) Rcore p (dryTailLay Psc.sc inner).shiftTermChain
           s.termSpace s.termFixed s.toolMul s.treeMul) :
-    MinCostFlowStatement := by
+    DyadicWithVConcretePrograms :=
   let Psc := mkDrySparseCorePieces firstStep firstInit C hC hFirstStep hFirstInit
-  let openSz := coreSz.toDryOpenSizes; let hOpen := hCore.toDryOpenSizeBounds
+  let openSz := coreSz.toDryOpenSizes
+  let hOpen := hCore.toDryOpenSizeBounds
   let selSz := mkDrySelectRebuildSizes (dryInitSelectSizes Psc) (dryShiftSelectSizes Psc)
   let hSel := mkDrySelectRebuildSizeBounds (dryInitSelectSizeBounds Psc)
     (dryShiftSelectSizeBounds Psc)
@@ -644,44 +683,43 @@ theorem theorem_1_1_skeleton_kfbl_sel
   let hB := dryInnerBounds_hyp Psc openSz hOpen selSz hSel
   let inner := dryInnerCodeSel (dryInitCode (dryParamCode Psc)) coreCode drySelectRouteCode
     termCode dryDeepSelectCode
-  have hInitSel := drySelInitCode_hInitSel Psc coreCode drySelectRouteCode termCode
+  let hInitSel := drySelInitCode_hInitSel Psc coreCode drySelectRouteCode termCode
     dryDeepSelectCode coreSz hCore (dryShiftSelectSizes Psc) (dryShiftSelectSizeBounds Psc)
-  have hSelectHeap := drySelectRouteCode_hSelectHeap_sel Psc (dryInitCode (dryParamCode Psc))
+  let hSelectHeap := drySelectRouteCode_hSelectHeap_sel Psc (dryInitCode (dryParamCode Psc))
     coreCode termCode dryDeepSelectCode drySelInitCode coreSz hCore selSz hSel
-  have hDeepSel := dryDeepSelectCode_hDeepSel Psc (dryInitCode (dryParamCode Psc))
+  let hDeepSel := dryDeepSelectCode_hDeepSel Psc (dryInitCode (dryParamCode Psc))
     coreCode drySelectRouteCode termCode drySelInitCode openSz hOpen
     (dryInitSelectSizes Psc) (dryInitSelectSizeBounds Psc)
     dryTermSelectSizes dryTermSelectSizeBounds
-  have hImpl := drySolver_implements_sel Psc (dryInitCode (dryParamCode Psc)) coreCode
+  let hImpl := drySolver_implements_sel Psc (dryInitCode (dryParamCode Psc)) coreCode
     drySelectRouteCode termCode dryDeepSelectCode drySelInitCode coreSz hCore selSz hSel
     (fun _ J => dryPot J) hInitSel hCoreSel hSelectHeap hTermSel hDeepSel
-  refine theorem_1_1_of_dyadic_withV_mrds_programs
-    { lastTool := dryLastTool
-      lastConstant := dryLastConstant
-      lastSpec := dryLastSpec
-      witness := dryWitnessUsed
-      cycleInit := drySelInitProc (concreteEdgeThresholdWithLast dryWitnessUsed)
-        (concreteQualityBudgetWithLast dryWitnessUsed) Psc.sc inner drySelInitCode
-      cycleOp := solverOpsDispatch mrdsCycleBase
-      cycle := dryCycleWithSelInit (concreteEdgeThresholdWithLast dryWitnessUsed)
-        (concreteQualityBudgetWithLast dryWitnessUsed) Psc.sc inner drySelInitCode
-      cycleDeterministic := dryCycleWithSelInit_noRand _ _ drySelInitCode Psc.hsc
-        (dryInnerCodeSel_isDeterministic (dryInitCode (dryParamCode Psc)) coreCode
-          drySelectRouteCode termCode dryDeepSelectCode)
-      cycleRate := B.cycleRate
-      cycleAllocation := B.cycleAllocation
-      cycleSpace := B.cycleSpace
-      allocationCoefficient := dryAllocCoeffFull B hB
-      allocationDegree := dryAllocDeg B hB
-      cycleSpace_poly := dryAllocFull_spec B hB
-      cycleRateExponent := dryRateExponent B hB
-      cycleRateExponent_nonneg := (dryRate_spec B hB).2.1
-      cycleRateConstant := dryRateConstant B hB
-      cycleRateConstant_pos := (dryRate_spec B hB).1
-      cycleRate_subpoly := (dryRate_spec B hB).2.2
-      supported := fun source J hJn hJm hCost hCap hw => by
-        refine ⟨_, hImpl source J hJn hJm hCost hCap hw,
-          fun j hj args => B.cycleAllocation_le_cycleSpace _ _ j hj args⟩ }
+  { lastTool := dryLastTool
+    lastConstant := dryLastConstant
+    lastSpec := dryLastSpec
+    witness := dryWitnessUsed
+    cycleInit := drySelInitProc (concreteEdgeThresholdWithLast dryWitnessUsed)
+      (concreteQualityBudgetWithLast dryWitnessUsed) Psc.sc inner drySelInitCode
+    cycleOp := solverOpsDispatch mrdsCycleBase
+    cycle := dryCycleWithSelInit (concreteEdgeThresholdWithLast dryWitnessUsed)
+      (concreteQualityBudgetWithLast dryWitnessUsed) Psc.sc inner drySelInitCode
+    cycleDeterministic := dryCycleWithSelInit_noRand _ _ drySelInitCode Psc.hsc
+      (dryInnerCodeSel_isDeterministic (dryInitCode (dryParamCode Psc)) coreCode
+        drySelectRouteCode termCode dryDeepSelectCode)
+    cycleRate := B.cycleRate
+    cycleAllocation := B.cycleAllocation
+    cycleSpace := B.cycleSpace
+    allocationCoefficient := dryAllocCoeffFull B hB
+    allocationDegree := dryAllocDeg B hB
+    cycleSpace_poly := dryAllocFull_spec B hB
+    cycleRateExponent := dryRateExponent B hB
+    cycleRateExponent_nonneg := (dryRate_spec B hB).2.1
+    cycleRateConstant := dryRateConstant B hB
+    cycleRateConstant_pos := (dryRate_spec B hB).1
+    cycleRate_subpoly := (dryRate_spec B hB).2.2
+    supported := fun source J hJn hJm hCost hCap hw =>
+      ⟨_, hImpl source J hJn hJm hCost hCap hw,
+        fun j hj args => B.cycleAllocation_le_cycleSpace _ _ j hj args⟩ }
 
 end MinCostFlow.Final.DryRun
 

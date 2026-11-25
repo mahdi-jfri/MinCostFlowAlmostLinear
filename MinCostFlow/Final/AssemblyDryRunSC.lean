@@ -775,21 +775,7 @@ def dryProgramsSC (Psc : DrySparseCorePieces)
       (hS.hDeep source J hJn hJm hCost hCap hw) (hS.hEnv source J hJn hJm hCost hCap hw)
       (fun j hj args => B.cycleAllocation_le_cycleSpace I.n I.m j hj args)
 
-/-- **Theorem 1.1 (page 2), second dry run through the sparse-core bridge with proved Init.**
-Derives `MinCostFlowStatement` from the sparse-core piece hypotheses
-(`DrySparseCorePieces`), the inner procedures given as parameters (`SolverInnerOpen`, with
-`initConcreteBody` and its local helpers already installed), the explicit Init bridge hypotheses
-(`DrySCInitBridgeHyps`), and the other five inner specs (`DrySCSolverHyps`), discharging
-`OrdInitConcreteSpecW` via `initConcreteBody_meets_spec`, `SparsifyPolyStretch`, `γ_t = 1`,
-`wordExp ≤ 39`, `DrySparseCoreCapLevels`, and the per-level sparse-core word bound automatically. -/
-theorem theorem_1_1_dry_run_sc (Psc : DrySparseCorePieces)
-    (openInner : SolverInnerOpen) (hinner : openInner.IsDeterministic)
-    (B : OrdSolverInnerBounds) (hB : InnerBoundsHyp B)
-    (sz : Circulation → Circulation → WiredInnerSizes)
-    (hInitBridge : DrySCInitBridgeHyps Psc openInner B hB sz)
-    (hS : DrySCSolverHyps Psc openInner B hB sz) :
-    MinCostFlowStatement :=
-  theorem_1_1_of_dyadic_withV_mrds_programs
-    (dryProgramsSC Psc openInner hinner B hB sz hInitBridge hS)
 
 end MinCostFlow.Final.DryRun
+
+end

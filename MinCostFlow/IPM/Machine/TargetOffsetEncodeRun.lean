@@ -48,7 +48,7 @@ theorem targetOffsetEncode_runs_of_regs {w guess : ℕ} (F : MinRatioFormat w) (
     all_goals exact hwords _ (by simp [targetOffsetPacket,targetEpochPacket])
   obtain ⟨body,hbody,o,st,c,hRun,hout,hcost⟩ := hguess args init.mem init.pos ω hArgs hpre
   have hOut : (fixedIntegerBlockContract w F.fmt.limbBits).post
-      (encodeInt (offsetTarget radius offset)++[F.limbs,F.fmt.precision,heap]) init.mem o.value st.mem := hout
+      (encodeSignedPair (offsetTarget radius offset)++[F.limbs,F.fmt.precision,heap]) init.mem o.value st.mem := hout
   have hEnd : o.value=next := hOut.2
   let mid : State := ⟨st.mem,Function.update init.regs 25 next,st.pos⟩
   let stored : State := {mid with regs:=Function.update mid.regs 6 target}
@@ -97,7 +97,7 @@ theorem targetOffsetEncode_runs_of_regs {w guess : ℕ} (F : MinRatioFormat w) (
   · have hv := hOut.1.2.2.2.2
     change ScalarAt st.mem target F.fmt.limbBits F.limbs F.fmt.precision
       (Num.decodeIntWords _ _ : ℝ) at hv
-    simpa only [encodeInt,List.cons_append,List.nil_append,List.getD_cons_zero,List.getD_cons_succ,
+    simpa only [encodeSignedPair,List.cons_append,List.nil_append,List.getD_cons_zero,List.getD_cons_succ,
       Num.decodeIntWords_encodeInt] using hv
 
 /-- Execute the signed target write and the two caller register updates. -/

@@ -37,27 +37,22 @@ noncomputable def dryPscFinal : DrySparseCorePieces :=
     (drySC_hFirstInit dryCompCode dryCFS asmFsStepCode (dryFirstConsts dryFsStepMul)
       (dryFirstConsts_initMul dryFsStepMul) (dryFirstConsts_initSpace dryFsStepMul))
 
-/-- **Theorem 1.1 (page 2) from two parts of the chain core**: the Ext spec of the inner
-chain-core block of the dry run and the disjointness clause of the core, at the sparse-core pieces
-`dryPscFinal`. -/
-theorem theorem_1_1_of_core
+/-- **Factored `DyadicWithVConcretePrograms` bundle from two parts of the chain core.** -/
+noncomputable def dryDyadicWithVBundle_core
     (hParts : DryCoreOpenParts dryPscFinal dryInnerCoreCode (dryInnerCoreSizes dryPscFinal)
       (dryInnerCoreSizeBounds dryPscFinal)) :
-    MinCostFlowStatement :=
-  theorem_1_1_of_parts asmFsStepCode (dryFirstConsts dryFsStepMul)
+    DyadicWithVConcretePrograms :=
+  dryDyadicWithVBundle_parts asmFsStepCode (dryFirstConsts dryFsStepMul)
     (dryFirstConsts_hC dryFsStepMul) (dryFirstConsts_initMul dryFsStepMul)
     (dryFirstConsts_initSpace dryFsStepMul)
     (dryFirstStep_hFirstStep dryFsStepMul dryFirstStep_cost)
     dryInnerCoreCode (dryInnerCoreSizes dryPscFinal) (dryInnerCoreSizeBounds dryPscFinal) hParts
 
-/-- **Theorem 1.1 (page 2) from two facts on Branch B of the chain core**: the top goal
-`BranchBTopGoalKFBL` (the post of Branch B), and the disjointness clause on the end state
-of Branch B at the dry values (`DryInnerCoreBranchBMetaDisj`). The two parts of `DryCoreOpenParts`
-are `dryInnerCore_extParts_of_topGoal` and `dryInnerCore_openPart2`. -/
-theorem theorem_1_1_of_branchB (hTop : BranchBTopGoalKFBL)
+/-- **Factored `DyadicWithVConcretePrograms` bundle from two facts on Branch B of the chain core.** -/
+noncomputable def dryDyadicWithVBundle_branchB (hTop : BranchBTopGoalKFBL)
     (hDisj : DryInnerCoreBranchBMetaDisj dryPscFinal) :
-    MinCostFlowStatement :=
-  theorem_1_1_of_core fun source J hJn hJm hCost hCap hw =>
+    DyadicWithVConcretePrograms :=
+  dryDyadicWithVBundle_core fun source J hJn hJm hCost hCap hw =>
     ⟨dryInnerCore_extParts_of_topGoal dryPscFinal hTop source J hJn hJm hCost hCap hw,
       dryInnerCore_openPart2 dryPscFinal hDisj source J hJn hJm hCost hCap hw⟩
 

@@ -1,14 +1,14 @@
 module
 
-public import MinCostFlow.Scaling.InputLayout
-import WordRAM.Memory
-import WordRAM.Entry
+public import MinCostFlow.Num.SignedPair
+public import WordRAM.Memory
+public import WordRAM.Entry
 
 /-!
 # Stored signed demand tables
 
 The lower-capacity reduction keeps one canonical signed pair per vertex.
-This layout uses the statement's `encodeInt`, with two consecutive cells
+This layout uses the statement's `encodeSignedPair`, with two consecutive cells
 per entry. Copying the input demand block initializes it. Updating one pair
 changes exactly one vertex value, which also justifies sequential updates
 when an input edge is a loop.
@@ -20,18 +20,18 @@ open WordRAM
 
 /-- One canonical sign/magnitude pair per vertex. -/
 def SignedTableAt {n : ℕ} (mem : ℕ → ℕ) (a : ℕ) (s : Fin n → ℤ) : Prop :=
-  ∀ v, ListAt mem (a + 2 * v.val) (encodeInt (s v))
+  ∀ v, ListAt mem (a + 2 * v.val) (encodeSignedPair (s v))
 
 /-- The contiguous signed-integer encoding exposes each complete pair. -/
 theorem integers_pair_at (zs : List ℤ) (mem : ℕ → ℕ) (a : ℕ)
-    (hat : ListAt mem a (zs.flatMap encodeInt)) (v : Fin zs.length) :
-    ListAt mem (a + 2 * v.val) (encodeInt (zs.getD v.val 0)) := by
+    (hat : ListAt mem a (zs.flatMap encodeSignedPair)) (v : Fin zs.length) :
+    ListAt mem (a + 2 * v.val) (encodeSignedPair (zs.getD v.val 0)) := by
   induction zs generalizing a with
   | nil => exact Fin.elim0 v
   | cons z zs ih =>
     obtain ⟨hhead, htail⟩ := listAt_append.mp hat
-    change ListAt mem a (encodeInt z) at hhead
-    change ListAt mem (a + 2) (zs.flatMap encodeInt) at htail
+    change ListAt mem a (encodeSignedPair z) at hhead
+    change ListAt mem (a + 2) (zs.flatMap encodeSignedPair) at htail
     obtain ⟨i, hi⟩ := v
     cases i with
     | zero => simpa only [Nat.mul_zero, Nat.add_zero, List.getD_cons_zero] using hhead
@@ -43,7 +43,7 @@ theorem integers_pair_at (zs : List ℤ) (mem : ℕ → ℕ) (a : ℕ)
 
 /-- A contiguous encoding of a vertex-indexed vector realizes the table layout. -/
 theorem signedTableAt_of_listAt {n : ℕ} (s : Fin n → ℤ) (mem : ℕ → ℕ) (a : ℕ)
-    (hat : ListAt mem a ((List.ofFn s).flatMap encodeInt)) : SignedTableAt mem a s := by
+    (hat : ListAt mem a ((List.ofFn s).flatMap encodeSignedPair)) : SignedTableAt mem a s := by
   intro v
   have hv : v.val < (List.ofFn s).length := by simpa only [List.length_ofFn] using v.isLt
   have hh := integers_pair_at (List.ofFn s) mem a hat ⟨v.val, hv⟩
@@ -53,7 +53,7 @@ theorem signedTableAt_of_listAt {n : ℕ} (s : Fin n → ℤ) (mem : ℕ → ℕ
 
 /-- The per-vertex signed table layout determines its contiguous encoding. -/
 theorem SignedTableAt.listAt {n : ℕ} {mem : ℕ → ℕ} {a : ℕ} {s : Fin n → ℤ}
-    (hat : SignedTableAt mem a s) : ListAt mem a ((List.ofFn s).flatMap encodeInt) := by
+    (hat : SignedTableAt mem a s) : ListAt mem a ((List.ofFn s).flatMap encodeSignedPair) := by
   induction n generalizing a with
   | zero => exact listAt_nil _ _
   | succ n ih =>
@@ -71,7 +71,7 @@ exactly one entry of the signed demand vector. -/
 theorem SignedTableAt.update {n : ℕ} {mem mem' : ℕ → ℕ} {a heap : ℕ}
     {s : Fin n → ℤ} (hat : SignedTableAt mem a s) (v : Fin n) (z : ℤ)
     (hend : a + 2 * n ≤ heap)
-    (hcell : ListAt mem' (a + 2 * v.val) (encodeInt z))
+    (hcell : ListAt mem' (a + 2 * v.val) (encodeSignedPair z))
     (hframe : ∀ x < heap, x ≠ a + 2 * v.val → x ≠ a + 2 * v.val + 1 → mem' x = mem x) :
     SignedTableAt mem' a (Function.update s v z) := by
   intro u
@@ -113,9 +113,9 @@ theorem SignedTableAt.of_agree {n : ℕ} {mem mem' : ℕ → ℕ} {a : ℕ}
 integer vector. -/
 theorem exists_signedTableAt {n : ℕ} (s : Fin n → ℤ) :
     ∃ mem, SignedTableAt mem 0 s ∧ ZeroFrom mem (2 * n) := by
-  refine ⟨initMem ((List.ofFn s).flatMap encodeInt),
+  refine ⟨initMem ((List.ofFn s).flatMap encodeSignedPair),
     signedTableAt_of_listAt s _ 0 (listAt_initMem _), ?_⟩
-  simpa only [integers_encode_length, List.length_ofFn] using
-    zeroFrom_initMem ((List.ofFn s).flatMap encodeInt)
+  simpa only [flatMap_encodeSignedPair_length, List.length_ofFn] using
+    zeroFrom_initMem ((List.ofFn s).flatMap encodeSignedPair)
 
 end MinCostFlow.Scaling.Machine

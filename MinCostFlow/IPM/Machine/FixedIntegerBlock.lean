@@ -34,7 +34,7 @@ def fixedIntegerBlockModule (b h : ℕ) : List Stmt :=
 /-- The exact result begins at `heap+2L`, with `3L` total allocation. -/
 def fixedIntegerBlockContract (w h : ℕ) : Contract :=
   let C := heapContract w
-    (fun args _ => ∃ n : ℤ,∃ L P heap,args=encodeInt n++[L,P,heap] ∧
+    (fun args _ => ∃ n : ℤ,∃ L P heap,args=encodeSignedPair n++[L,P,heap] ∧
       Num.Fits h L n ∧ Num.Fits h L (n*(2:ℤ)^P))
     (fun args _ mem' => ScalarAt mem' (heapArg args+2*args.getD 2 0) h
       (args.getD 2 0) (args.getD 3 0)
@@ -68,16 +68,16 @@ theorem fixedIntegerBlock_meetsContract {w h b : ℕ} {p : Program}
   obtain ⟨⟨n,L,P,heap,rfl,hn,hscaled⟩,hzero,hspace⟩ := hpre
   change ZeroFrom mem heap at hzero
   change heap+3*L < 2^w at hspace
-  have hsw : (if n < 0 then 1 else 0) < 2^w := hwords _ (by simp [encodeInt])
-  have hmw : n.natAbs < 2^w := hwords _ (by simp [encodeInt])
-  have hLw : L < 2^w := hwords _ (by simp [encodeInt])
-  have hPw : P < 2^w := hwords _ (by simp [encodeInt])
-  have hhw : heap < 2^w := hwords _ (by simp [encodeInt])
+  have hsw : (if n < 0 then 1 else 0) < 2^w := hwords _ (by simp [encodeSignedPair])
+  have hmw : n.natAbs < 2^w := hwords _ (by simp [encodeSignedPair])
+  have hLw : L < 2^w := hwords _ (by simp [encodeSignedPair])
+  have hPw : P < 2^w := hwords _ (by simp [encodeSignedPair])
+  have hhw : heap < 2^w := hwords _ (by simp [encodeSignedPair])
   apply runs_start_le
   unfold fixedIntegerBlockBody
-  refine runs_seq_call_le hloadSpec (vs:=encodeInt n++[L,heap]) (by simp only [encodeInt,List.cons_append,List.nil_append]; eval_expr) ?_ ?_ ?_
+  refine runs_seq_call_le hloadSpec (vs:=encodeSignedPair n++[L,heap]) (by simp only [encodeSignedPair,List.cons_append,List.nil_append]; eval_expr) ?_ ?_ ?_
   · intro x hx
-    simp [encodeInt] at hx
+    simp [encodeSignedPair] at hx
     rcases hx with rfl | rfl | rfl | rfl <;> assumption
   · exact ⟨⟨n,L,heap,rfl⟩,hzero,by change heap+2*L < 2^w; omega⟩
   · intro v1 mem1 pos1 hp1
@@ -87,7 +87,7 @@ theorem fixedIntegerBlock_meetsContract {w h b : ℕ} {p : Program}
     change Num.Valid mem1 (heap+L) h L at hvalid
     change ∀ x < heap,mem1 x=mem x at hframe1
     have hv1w : v1 < 2^w := by omega
-    refine runs_seq_call_le hshiftSpec (vs:=[heap+L,L,P,v1]) (by simp only [encodeInt,List.cons_append,List.nil_append]; eval_expr) ?_ ?_ ?_
+    refine runs_seq_call_le hshiftSpec (vs:=[heap+L,L,P,v1]) (by simp only [encodeSignedPair,List.cons_append,List.nil_append]; eval_expr) ?_ ?_ ?_
     · wram_words
     · exact ⟨⟨_,_,_,_,rfl,by omega,hvalid⟩,hzero1,by change v1+L < 2^w; omega⟩
     · intro v2 mem2 pos2 hp2
@@ -97,7 +97,7 @@ theorem fixedIntegerBlock_meetsContract {w h b : ℕ} {p : Program}
       change Num.intVal mem2 v1 h L=Num.wrap h L (Num.intVal mem1 (heap+L) h L*(2:ℤ)^P) at hvalue2
       rw [hval,Num.wrap_of_fits hscaled] at hvalue2
       have hv2w : v2 < 2^w := by omega
-      refine runs_ret_le (v:=v2) (by simp only [encodeInt,List.cons_append,List.nil_append]; eval_expr) ?_ ?_
+      refine runs_ret_le (v:=v2) (by simp only [encodeSignedPair,List.cons_append,List.nil_append]; eval_expr) ?_ ?_
       · change (heap ≤ v2 ∧ v2 ≤ heap+3*L ∧ (∀ x < heap,mem2 x=mem x) ∧
           ZeroFrom mem2 v2 ∧ ScalarAt mem2 (heap+2*L) h L P (Num.decodeIntWords (if n < 0 then 1 else 0) n.natAbs:ℝ)) ∧
           v2=heap+3*L
@@ -109,7 +109,7 @@ theorem fixedIntegerBlock_meetsContract {w h b : ℕ} {p : Program}
         · rw [← hv1,Num.fixVal,hvalue2]
           simp only [Int.cast_mul,Int.cast_pow,Int.cast_ofNat]
           exact mul_div_cancel_right₀ _ (by positivity)
-      · simp only [fixedIntegerBlockContract,heapContract,encodeInt,List.cons_append,List.nil_append,
+      · simp only [fixedIntegerBlockContract,heapContract,encodeSignedPair,List.cons_append,List.nil_append,
           List.getD_cons_zero,List.getD_cons_succ,Num.loadIntContract,Num.shiftLeftContract,
           Expr.size_reg,Expr.size_bin,argsSize_cons,argsSize_nil]
         omega
@@ -120,7 +120,7 @@ theorem fixedIntegerBlock_negative_example :
     let p : Program := ⟨fixedIntegerBlockModule 0 4⟩
     p.IsDeterministic ∧ ∀ ω : ℕ → Bool,
       ∃ o st c,Runs 16 p ω (fixedIntegerBlockBody 1 6)
-        (startState (encodeInt (-3)++[8,8,0]) (fun _ => 0) 0) o st c ∧
+        (startState (encodeSignedPair (-3)++[8,8,0]) (fun _ => 0) 0) o st c ∧
         o.value=24 ∧ ScalarAt st.mem 16 4 8 8 (-3) ∧ c ≤ 1000 := by
   dsimp only
   have hplace : (⟨fixedIntegerBlockModule 0 4⟩ : Program).HasAt 0 (fixedIntegerBlockModule 0 4) := by
@@ -131,18 +131,18 @@ theorem fixedIntegerBlock_negative_example :
   constructor
   · exact fixedIntegerBlockModule_noRand 0 4
   · intro ω
-    have hpre : (fixedIntegerBlockContract 16 4).pre (encodeInt (-3)++[8,8,0]) (fun _ => 0) := by
+    have hpre : (fixedIntegerBlockContract 16 4).pre (encodeSignedPair (-3)++[8,8,0]) (fun _ => 0) := by
       refine ⟨⟨-3,8,8,0,rfl,?_,?_⟩,?_,by decide⟩
       · norm_num [Num.Fits,Num.capacity,Num.base]
       · norm_num [Num.Fits,Num.capacity,Num.base]
       · intro x _
         rfl
-    obtain ⟨body,hbody,o,st,c,hr,hpost,hcost⟩ := hmet (encodeInt (-3)++[8,8,0]) (fun _ => 0) 0 ω
-      (by intro x hx; simp [encodeInt] at hx; rcases hx with rfl | rfl | rfl | rfl <;> decide) hpre
+    obtain ⟨body,hbody,o,st,c,hr,hpost,hcost⟩ := hmet (encodeSignedPair (-3)++[8,8,0]) (fun _ => 0) 0 ω
+      (by intro x hx; simp [encodeSignedPair] at hx; rcases hx with rfl | rfl | rfl | rfl <;> decide) hpre
     have he : body=fixedIntegerBlockBody 1 6 := by
       simpa [fixedIntegerBlockModule] using hbody.symm
     subst body
     refine ⟨o,st,c,hr,hpost.2,?_,hcost⟩
-    simpa [encodeInt,Num.decodeIntWords,heapArg] using hpost.1.2.2.2.2
+    simpa [encodeSignedPair,Num.decodeIntWords,heapArg] using hpost.1.2.2.2.2
 
 end MinCostFlow.IPM.Machine

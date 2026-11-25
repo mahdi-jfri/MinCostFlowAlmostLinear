@@ -11,7 +11,7 @@ import WordRAM.Entry
 The flow-to-circulation reductions add signed demands and capacities. Their
 values fit in one word in magnitude, so the statement's sign/magnitude pair
 needs no multiword arithmetic. This procedure adds two canonical pairs,
-handles cancellation explicitly, allocates `encodeInt (x+y)`, and returns
+handles cancellation explicitly, allocates `encodeSignedPair (x+y)`, and returns
 the new heap pointer. It uses no random instructions and costs at most 80.
 -/
 
@@ -42,7 +42,7 @@ def signedAddContract (w : ℕ) (x y : ℤ) : Contract :=
     (fun args _ => ∃ heap, args =
       [if x < 0 then 1 else 0, x.natAbs, if y < 0 then 1 else 0, y.natAbs, heap] ∧
       x.natAbs + y.natAbs < 2 ^ w)
-    (fun args _ mem' => ListAt mem' (heapArg args) (encodeInt (x + y)))
+    (fun args _ mem' => ListAt mem' (heapArg args) (encodeSignedPair (x + y)))
     (fun _ _ => 80) (fun _ _ => 2)
   { C with post := fun args mem out mem' => C.post args mem out mem' ∧ out = heapArg args + 2 }
 
@@ -91,7 +91,7 @@ theorem signedAdd_meetsContract {w b : ℕ} {p : Program}
       have houtword : out < 2 ^ w := by omega
       refine runs_ret_le (v := out) (by eval_expr) ?_ ?_
       · change (heap ≤ out ∧ out ≤ heap + 2 ∧ (∀ a < heap, mem' a = mem a) ∧
-          ZeroFrom mem' out ∧ ListAt mem' heap (encodeInt (x + y))) ∧ out = heap + 2
+          ZeroFrom mem' out ∧ ListAt mem' heap (encodeSignedPair (x + y))) ∧ out = heap + 2
         rw [hencoding]
         exact hpost
       · simp only [signedAddContract, heapContract, wordPairContract, Expr.size_bin,
@@ -111,7 +111,7 @@ theorem signedAdd_meetsContract {w b : ℕ} {p : Program}
         have houtword : out < 2 ^ w := by omega
         refine runs_ret_le (v := out) (by eval_expr) ?_ ?_
         · change (heap ≤ out ∧ out ≤ heap + 2 ∧ (∀ a < heap, mem' a = mem a) ∧
-            ZeroFrom mem' out ∧ ListAt mem' heap (encodeInt (x + y))) ∧ out = heap + 2
+            ZeroFrom mem' out ∧ ListAt mem' heap (encodeSignedPair (x + y))) ∧ out = heap + 2
           rw [hencoding]
           exact hpost
         · simp only [signedAddContract, heapContract, wordPairContract, Expr.size_bin,
@@ -131,7 +131,7 @@ theorem signedAdd_meetsContract {w b : ℕ} {p : Program}
           have houtword : out < 2 ^ w := by omega
           refine runs_ret_le (v := out) (by eval_expr) ?_ ?_
           · change (heap ≤ out ∧ out ≤ heap + 2 ∧ (∀ a < heap, mem' a = mem a) ∧
-              ZeroFrom mem' out ∧ ListAt mem' heap (encodeInt (x + y))) ∧ out = heap + 2
+              ZeroFrom mem' out ∧ ListAt mem' heap (encodeSignedPair (x + y))) ∧ out = heap + 2
             rw [hencoding]
             exact hpost
           · simp only [signedAddContract, heapContract, wordPairContract, Expr.size_bin,
@@ -150,7 +150,7 @@ theorem signedAdd_meetsContract {w b : ℕ} {p : Program}
           have houtword : out < 2 ^ w := by omega
           refine runs_ret_le (v := out) (by eval_expr) ?_ ?_
           · change (heap ≤ out ∧ out ≤ heap + 2 ∧ (∀ a < heap, mem' a = mem a) ∧
-              ZeroFrom mem' out ∧ ListAt mem' heap (encodeInt (x + y))) ∧ out = heap + 2
+              ZeroFrom mem' out ∧ ListAt mem' heap (encodeSignedPair (x + y))) ∧ out = heap + 2
             rw [hencoding]
             exact hpost
           · simp only [signedAddContract, heapContract, wordPairContract, Expr.size_bin,

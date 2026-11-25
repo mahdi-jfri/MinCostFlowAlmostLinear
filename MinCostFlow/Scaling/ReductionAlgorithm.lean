@@ -162,7 +162,7 @@ def reduceAnswer (solve : (J : Circulation) → Fin J.m → ℤ)
     (I : Instance) (hv : I.IsValid) : List ℕ :=
   match reduceToCirculation solve I hv with
   | none => [0]
-  | some f => 1 :: (List.finRange I.m).flatMap (fun e => encodeInt (f e))
+  | some f => 1 :: (List.finRange I.m).flatMap (fun e => encodeInt I.limbWidth (f e))
 
 /-- The reduction returns a correct answer in the problem statement's format,
 including its certificate that no feasible real flow exists. -/

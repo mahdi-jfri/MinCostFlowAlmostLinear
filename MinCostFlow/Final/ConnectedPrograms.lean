@@ -2,7 +2,6 @@ module
 
 public import MinCostFlow.Final.ConnectedIPMWorkspace
 public import MinCostFlow.Final.WidenedPrograms
-public import MinCostFlow.Final.OuterScalingRunsTo
 public import MinCostFlow.IPM.Machine.ConnectedBoundedSolver
 public import MinCostFlow.Final.ConnectedChainModel
 import MinCostFlow.Num.ModulePlacement

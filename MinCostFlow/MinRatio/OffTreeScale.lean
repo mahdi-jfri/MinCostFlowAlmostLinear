@@ -63,7 +63,7 @@ and heap pointer. -/
 
 /-- The block immediately before the returned heap holds the scaled numerator. -/
 @[expose] def offTreeScaleContract (w h : ℕ) (num count : ℤ) : Contract where
-  pre args mem := ∃ a L heap, args = a :: (encodeInt count ++ [L, heap]) ∧
+  pre args mem := ∃ a L heap, args = a :: (encodeSignedPair count ++ [L, heap]) ∧
     a + L ≤ heap ∧ PathIntAt mem a h L num ∧ Num.Fits h L count ∧
     Num.Fits h L (num * count) ∧ ZeroFrom mem heap ∧ heap + (13 * L + 1) < 2 ^ w
   post args mem ret mem' :=
@@ -122,7 +122,7 @@ theorem offTreeScale_meetsContract {w h entry load scale : ℕ} {p : Program}
         exact ⟨by omega, (show ptr + 10 * L + 1 = heap + 12 * L + 1 by omega) ▸ hvalue,
           fun x hx => (hframe₂ x (by omega)).trans (hframe x hx), hzero₂⟩
       · simp only [offTreeScaleContract, Num.loadIntContract, Num.fixedMultiplyContract,
-          heapContract, encodeInt, List.cons_append, List.nil_append,
+          heapContract, encodeSignedPair, List.cons_append, List.nil_append,
           List.getD_cons_zero, List.getD_cons_succ, Expr.size_bin, Expr.size_reg,
           Expr.size_const, argsSize_cons, argsSize_nil]
         rw [show (2 * L) * (38 * (2 * L) + 35) = 152 * L^2 + 70 * L by ring]
